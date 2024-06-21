@@ -11,7 +11,7 @@ namespace _GameData.Scripts
         [SerializeField] private SpriteRenderer spriteRenderer;
         [SerializeField] private Rigidbody2D rb;
 
-        [SerializeField] private float movementSpeed;
+        [SerializeField] private float movementSpeed = 8f;
         
         private const float EdgeOffset = 7.5f;
 
