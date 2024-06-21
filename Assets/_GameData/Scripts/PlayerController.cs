@@ -1,3 +1,5 @@
+using System;
+using _GameData.Scripts.ScriptableObjects;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -5,30 +7,69 @@ namespace _GameData.Scripts
 {
     public class PlayerController : NetworkBehaviour
     {
-        private const float EdgeOffset = 8f;
+        [SerializeField] private PlayerVisualData playerVisualData;
+        [SerializeField] private SpriteRenderer spriteRenderer;
+        [SerializeField] private Rigidbody2D rb;
+
+        [SerializeField] private float movementSpeed;
         
+        private const float EdgeOffset = 7.5f;
+
+        private InputManager _inputManager;
+
         public override void OnNetworkSpawn()
         {
             base.OnNetworkSpawn();
 
-            SetInitialPosition();
+            GetReferences();
+            SetupPlayer();
         }
 
-        private void SetInitialPosition()
+        private void GetReferences()
+        {
+            _inputManager = FindObjectOfType<InputManager>();
+        }
+
+        private void SetupPlayer()
         {
             float edgeMultiplier;
             if (IsHost)
             {
-                if (IsOwner) edgeMultiplier = -1f;
-                else edgeMultiplier = 1f;
+                if (IsOwner)
+                {
+                    rb.isKinematic = false;
+                    spriteRenderer.sprite = playerVisualData.hostPlayerSprite;
+                    edgeMultiplier = -1f;
+                }
+                else
+                {
+                    spriteRenderer.sprite = playerVisualData.clientPlayerSprite;
+                    edgeMultiplier = 1f;
+                }
             }
             else
             {
-                if (IsOwner) edgeMultiplier = 1f;
-                else edgeMultiplier = -1f;
+                if (IsOwner)
+                {
+                    rb.isKinematic = false;
+                    spriteRenderer.sprite = playerVisualData.clientPlayerSprite;
+                    edgeMultiplier = 1f;
+                }
+                else
+                {
+                    spriteRenderer.sprite = playerVisualData.hostPlayerSprite;
+                    edgeMultiplier = -1f;
+                }
             }
             
             transform.position = Vector3.right * EdgeOffset * edgeMultiplier;
+        }
+
+        private void FixedUpdate()
+        {
+            if (!IsOwner) return;
+            
+            rb.velocity = Vector2.up * (movementSpeed * _inputManager.VerticalValue);
         }
     }
 }

@@ -73,6 +73,7 @@ namespace _GameData.Scripts
 
             LoadScene(GameplaySceneName, true, LoadSceneMode.Single);
             _isSessionInitialized = true;
+            Debug.Log(IsHost ? "HOST" : "CLIENT");
         }
 
         private void LoadScene(string sceneName, bool useNetworkSceneManager, LoadSceneMode loadSceneMode)
