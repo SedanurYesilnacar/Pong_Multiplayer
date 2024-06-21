@@ -13,25 +13,35 @@ namespace _GameData.Scripts
         private const float MinForce = -1f;
         private const float MaxForce = 1f;
 
+        private float _initialHorizontalForceMultiplier;
+        private float _initialVerticalForceMultiplier;
+        private bool _isBallInitialized;
+
         public void InitBall()
         {
             rb.isKinematic = false;
+
+            _initialHorizontalForceMultiplier = Random.Range(0, 2) == 0 ? 1f : -1f;
+            _initialVerticalForceMultiplier = Random.Range(0, 2) == 0 ? 1f : -1f;
+
+            rb.velocity = new Vector2(_initialHorizontalForceMultiplier, _initialVerticalForceMultiplier) * movementSpeed;
             
-            var randomForceX = Random.Range(MinForce, MaxForce) * movementSpeed;
-            var randomForceY = Random.Range(MinForce, MaxForce) * movementSpeed;
-
-            if (randomForceX == 0 && randomForceY == 0) randomForceX = 1f * movementSpeed;
-
-            rb.velocity = new Vector2(randomForceX, randomForceY);
+            _isBallInitialized = true;
         }
 
         private void FixedUpdate()
         {
+            if (!_isBallInitialized) return;
+            
             if (IsHost)
             {
                 if (Mathf.Abs(rb.velocity.y) <= 0.05f)
                 {
                     rb.velocity = new Vector2(rb.velocity.x, Random.Range(MinForce, MaxForce) * movementSpeed);
+                }
+                else if (Mathf.Abs(rb.velocity.x) <= 0.05f)
+                {
+                    rb.velocity = new Vector2(Random.Range(MinForce, MaxForce) * movementSpeed, rb.velocity.y);
                 }
             }
         }

@@ -3,40 +3,21 @@ using UnityEngine;
 
 namespace _GameData.Scripts
 {
-    public class BallSpawner : NetworkBehaviour
+    public class BallSpawner : MonoBehaviour
     {
         [SerializeField] private GameObject ballPrefab;
-        
-        public override void OnNetworkSpawn()
+
+        private GameObject _instantiatedBall;
+
+        public void SpawnBall()
         {
-            if (!IsHost)
-            {
-                enabled = false;
-                return;
-            }
-
-            base.OnNetworkSpawn();
-
-            NetworkManager.OnClientConnectedCallback += OnClientConnectedCallbackHandler;
+            _instantiatedBall = Instantiate(ballPrefab);
+            _instantiatedBall.GetComponent<NetworkObject>().Spawn();
         }
 
-        public override void OnNetworkDespawn()
+        public void InitBall()
         {
-            NetworkManager.OnClientConnectedCallback -= OnClientConnectedCallbackHandler;
-
-            base.OnNetworkDespawn();
-        }
-
-        private void OnClientConnectedCallbackHandler(ulong obj)
-        {
-            SpawnBall();
-        }
-
-        private void SpawnBall()
-        {
-            var instantiatedBall = Instantiate(ballPrefab);
-            instantiatedBall.GetComponent<NetworkObject>().Spawn();
-            instantiatedBall.GetComponent<BallController>().InitBall();
+            _instantiatedBall.GetComponent<BallController>().InitBall();
         }
     }
 }
