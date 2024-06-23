@@ -63,7 +63,6 @@ namespace _GameData.Scripts
         {
             _scoreCanvas.UpdateScore(isHostFailed);
             _countdownCanvas.StartCountdown();
-            _ballSpawner.InitBall();
         }
     }
 }
