@@ -1,9 +1,8 @@
-using System;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace _GameData.Scripts
+namespace _GameData.Scripts.UI
 {
     public class MenuCanvas : MonoBehaviour
     {
@@ -12,12 +11,10 @@ namespace _GameData.Scripts
         [SerializeField] private Button quitButton;
 
         private NetworkManager _networkManager;
-        private SceneLoader _sceneLoader;
 
         private void OnEnable()
         {
             _networkManager = NetworkManager.Singleton;
-            _sceneLoader = SceneLoader.Instance;
             
             SubscribeEvents();
         }

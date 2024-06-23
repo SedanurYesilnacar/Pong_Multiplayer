@@ -4,7 +4,7 @@ using TMPro;
 using Unity.Netcode;
 using UnityEngine;
 
-namespace _GameData.Scripts
+namespace _GameData.Scripts.UI
 {
     public class CountdownCanvas : NetworkBehaviour
     {
