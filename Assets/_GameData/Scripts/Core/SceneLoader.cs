@@ -1,9 +1,8 @@
-using System;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace _GameData.Scripts
+namespace _GameData.Scripts.Core
 {
     public class SceneLoader : NetworkBehaviour
     {

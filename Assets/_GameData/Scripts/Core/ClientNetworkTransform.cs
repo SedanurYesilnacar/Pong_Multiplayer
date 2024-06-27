@@ -1,7 +1,6 @@
 using Unity.Netcode.Components;
-using UnityEngine;
 
-namespace _GameData.Scripts
+namespace _GameData.Scripts.Core
 {
     public class ClientNetworkTransform : NetworkTransform
     {

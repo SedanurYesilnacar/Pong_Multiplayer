@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace _GameData.Scripts
+namespace _GameData.Scripts.Core
 {
     public class InputManager : MonoBehaviour
     {
