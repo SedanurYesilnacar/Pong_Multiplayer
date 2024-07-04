@@ -13,6 +13,7 @@ namespace _GameData.Scripts.Core
 {
     public class LobbyManager : MonoBehaviour
     {
+        [SerializeField] private MenuTransitionManager menuTransitionManager;
         [SerializeField] private CreateLobbyCanvas createLobbyCanvas;
         
         private WaitForSeconds _heartbeatTimer; // Active lifespan = 30s
@@ -31,40 +32,11 @@ namespace _GameData.Scripts.Core
 
             AuthenticationService.Instance.SignedIn += SignedInHandler;
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
-            
-            InitSubCanvas();
         }
 
         private void SignedInHandler()
         {
             Debug.Log(AuthenticationService.Instance.PlayerId);
-        }
-
-        private void InitSubCanvas()
-        {
-            createLobbyCanvas.Init(CreateLobby);
-        }
-
-        [Command]
-        private async void CreateLobby()
-        {
-            var userLobbyOptions = createLobbyCanvas.GetLobbyOptions();
-            CreateLobbyOptions lobbyOptions = new CreateLobbyOptions
-            {
-                IsPrivate = userLobbyOptions.LobbyAccessibilityType == LobbyAccessibilityType.Private
-            };
-            
-            try
-            {
-                _createdLobby = await LobbyService.Instance.CreateLobbyAsync(userLobbyOptions.LobbyName, 2, lobbyOptions);
-                StartCoroutine(HeartbeatRoutine());
-                Debug.Log(_createdLobby.Name);
-                Debug.Log(_createdLobby.MaxPlayers);
-            }
-            catch (LobbyServiceException e)
-            {
-                Debug.LogError(e);
-            }
         }
 
         [Command]
@@ -90,16 +62,6 @@ namespace _GameData.Scripts.Core
             {
                 Debug.LogError(e);
             }
-        }
-
-        private IEnumerator HeartbeatRoutine()
-        {
-            yield return _heartbeatTimer;
-            
-            if (_createdLobby == null) yield break;
-            
-            yield return LobbyService.Instance.SendHeartbeatPingAsync(_createdLobby.Id);
-            StartCoroutine(HeartbeatRoutine());
         }
 
         [Command]
