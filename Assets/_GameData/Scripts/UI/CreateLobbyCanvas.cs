@@ -36,7 +36,7 @@ namespace _GameData.Scripts.UI
 
         public LobbyCreateOptions GetLobbyOptions()
         {
-            if (String.IsNullOrWhiteSpace(_lobbyName) || String.IsNullOrEmpty(_lobbyName)) _lobbyName = DefaultLobbyName;
+            if (String.IsNullOrWhiteSpace(lobbyNameText.text) || String.IsNullOrEmpty(lobbyNameText.text)) _lobbyName = DefaultLobbyName;
             else _lobbyName = lobbyNameText.text;
 
             LobbyCreateOptions newLobbyCreateOptions = new LobbyCreateOptions()
