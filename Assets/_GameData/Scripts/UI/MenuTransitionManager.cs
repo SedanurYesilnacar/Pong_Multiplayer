@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
 
@@ -9,6 +8,7 @@ namespace _GameData.Scripts.UI
     public class MenuTransitionManager : MonoBehaviour
     {
         [SerializeField] private List<MenuStateCanvas> menuStateCanvas;
+        [SerializeField] private NotificationCanvas notificationCanvas;
 
         private Canvas _currentCanvas;
         
@@ -19,6 +19,11 @@ namespace _GameData.Scripts.UI
             ChangeState(MenuStates.MainMenu);
         }
 
+        private void Update()
+        {
+            if(Input.GetKeyDown(KeyCode.T)) Debug.Log(CurrentLobby.Id);
+        }
+
         public void ChangeState(MenuStates targetState)
         {
             if (_currentCanvas) _currentCanvas.enabled = false;
@@ -26,6 +31,11 @@ namespace _GameData.Scripts.UI
             _currentCanvas = targetCanvas;
             _currentCanvas.enabled = true;
             if (_currentCanvas.gameObject.TryGetComponent(out IInitializableCanvas initializableCanvas)) initializableCanvas.Init();
+        }
+
+        public void ShowNotification(string message)
+        {
+            notificationCanvas.Show(message);
         }
     }
 

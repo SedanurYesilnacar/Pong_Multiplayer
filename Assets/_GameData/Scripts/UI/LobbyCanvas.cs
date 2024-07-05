@@ -14,21 +14,22 @@ namespace _GameData.Scripts.UI
         [SerializeField] private TMP_Text lobbyNameText;
         [SerializeField] private TMP_Text lobbyCodeText;
         [SerializeField] private Button startGameButton;
+        [SerializeField] private Button leaveButton;
         [SerializeField] private LobbyUserController[] lobbyUserControllers;
 
         private Lobby _currentLobby;
-
-        private void OnValidate()
-        {
-            menuTransitionManager = FindObjectOfType<MenuTransitionManager>();
-        }
+        private bool _isOwnerHost;
+        private string _ownerId;
 
         public void Init()
         {
+            _ownerId = AuthenticationService.Instance.PlayerId;
             SetupLobby();
+            
+            leaveButton.onClick.AddListener(LeaveClickHandler);
         }
 
-        public void SetupLobby()
+        private void SetupLobby()
         {
             _currentLobby = menuTransitionManager.CurrentLobby;
             if (_currentLobby == null)
@@ -39,11 +40,11 @@ namespace _GameData.Scripts.UI
                 return;
             }
 
-            var isOwnerHost = IsPlayerHost(AuthenticationService.Instance.PlayerId);
+            _isOwnerHost = IsPlayerHost(_ownerId);
             lobbyNameText.text = _currentLobby.Name;
             if (!_currentLobby.IsPrivate) lobbyCodeText.gameObject.SetActive(false);
             else lobbyCodeText.text = "Lobby Code: " + _currentLobby.LobbyCode;
-            startGameButton.gameObject.SetActive(isOwnerHost);
+            startGameButton.gameObject.SetActive(_isOwnerHost);
 
             if (lobbyUserControllers.Length < _currentLobby.MaxPlayers)
             {
@@ -52,11 +53,16 @@ namespace _GameData.Scripts.UI
                 menuTransitionManager.ChangeState(MenuStates.MainMenu);
                 return;
             }
+            
+            UpdateLobbyPlayers();
+        }
 
+        private void UpdateLobbyPlayers()
+        {
             for (int i = 0; i < _currentLobby.Players.Count; i++)
             {
                 var isUserHost = IsPlayerHost(_currentLobby.Players[i].Id);
-                lobbyUserControllers[i].ChangeUserType(isOwnerHost, isUserHost);
+                lobbyUserControllers[i].ChangeUserType(_isOwnerHost, isUserHost);
                 lobbyUserControllers[i].SetPlayerCredentials(_currentLobby.Players[i].Data["PlayerName"].Value);
             }
         }
@@ -64,6 +70,25 @@ namespace _GameData.Scripts.UI
         private bool IsPlayerHost(string playerId)
         {
             return _currentLobby.HostId == playerId;
+        }
+
+        private async void LeaveClickHandler()
+        {
+            try
+            {
+                Debug.Log(_currentLobby.Id); 
+                await LobbyService.Instance.RemovePlayerAsync(_currentLobby.Id, _ownerId);
+                
+                menuTransitionManager.CurrentLobby = null;
+                menuTransitionManager.ChangeState(MenuStates.MainMenu);
+            
+                leaveButton.onClick.RemoveAllListeners();
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.LogError(e);
+                if (e.Reason != LobbyExceptionReason.LobbyNotFound) menuTransitionManager.ShowNotification(e.Message);
+            }
         }
     }
 }

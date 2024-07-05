@@ -5,7 +5,6 @@ using TMPro;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.UI;
 
 namespace _GameData.Scripts.UI
@@ -16,25 +15,21 @@ namespace _GameData.Scripts.UI
         [SerializeField] private LobbyAccessibilityToggle lobbyAccessibilityToggle;
         [SerializeField] private TMP_Text lobbyNameText;
         [SerializeField] private Button createLobbyButton;
+        [SerializeField] private Button backButton;
 
         private string _lobbyName;
         private const string DefaultLobbyName = "My Lobby";
         private Lobby _createdLobby;
         private WaitForSeconds _heartbeatTimer; // Active lifespan = 30s
 
-
-        private void OnValidate()
-        {
-            if (!menuTransitionManager) menuTransitionManager = FindObjectOfType<MenuTransitionManager>();
-        }
-
         public void Init()
         {
             _heartbeatTimer = new WaitForSeconds(25f);
-            createLobbyButton.onClick.AddListener(CreateLobby);
+            createLobbyButton.onClick.AddListener(CreateLobbyClickHandler);
+            backButton.onClick.AddListener(BackClickHandler);
         }
 
-        public LobbyCreateOptions GetLobbyOptions()
+        private LobbyCreateOptions GetLobbyOptions()
         {
             if (String.IsNullOrWhiteSpace(lobbyNameText.text) || String.IsNullOrEmpty(lobbyNameText.text)) _lobbyName = DefaultLobbyName;
             else _lobbyName = lobbyNameText.text;
@@ -48,7 +43,7 @@ namespace _GameData.Scripts.UI
             return newLobbyCreateOptions;
         }
         
-        private async void CreateLobby()
+        private async void CreateLobbyClickHandler()
         {
             var userLobbyOptions = GetLobbyOptions();
             CreateLobbyOptions lobbyOptions = new CreateLobbyOptions
@@ -75,6 +70,7 @@ namespace _GameData.Scripts.UI
             catch (LobbyServiceException e)
             {
                 Debug.LogError(e);
+                menuTransitionManager.ShowNotification(e.Message);
             }
         }
 
@@ -86,6 +82,11 @@ namespace _GameData.Scripts.UI
             
             yield return LobbyService.Instance.SendHeartbeatPingAsync(_createdLobby.Id);
             StartCoroutine(HeartbeatRoutine());
+        }
+
+        private void BackClickHandler()
+        {
+            menuTransitionManager.ChangeState(MenuStates.MainMenu);
         }
     }
 

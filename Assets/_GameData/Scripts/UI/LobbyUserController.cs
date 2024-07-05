@@ -12,7 +12,7 @@ namespace _GameData.Scripts.UI
         
         public void ChangeUserType(bool isOwnerHost, bool isUserHost)
         {
-            kickIcon.SetActive(isOwnerHost);
+            kickIcon.SetActive(isOwnerHost && !isUserHost);
             hostIcon.SetActive(isUserHost);
         }
 

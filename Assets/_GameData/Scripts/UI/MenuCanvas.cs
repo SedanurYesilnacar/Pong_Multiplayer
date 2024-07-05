@@ -1,4 +1,8 @@
+using System;
+using System.Collections.Generic;
 using Unity.Netcode;
+using Unity.Services.Lobbies;
+using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
@@ -7,6 +11,7 @@ namespace _GameData.Scripts.UI
 {
     public class MenuCanvas : MonoBehaviour
     {
+        [SerializeField] private MenuTransitionManager menuTransitionManager;
         [SerializeField] private Button quickPlayButton;
         [SerializeField] private Button createLobbyButton;
         [SerializeField] private Button lobbyBrowserButton;
@@ -14,12 +19,15 @@ namespace _GameData.Scripts.UI
         [SerializeField] private Button quitButton;
 
         private NetworkManager _networkManager;
-        private MenuTransitionManager _menuTransitionManager;
+
+        private void OnValidate()
+        {
+            menuTransitionManager = FindObjectOfType<MenuTransitionManager>();
+        }
 
         private void OnEnable()
         {
             _networkManager = NetworkManager.Singleton;
-            _menuTransitionManager = FindObjectOfType<MenuTransitionManager>();
             
             SubscribeEvents();
         }
@@ -47,9 +55,34 @@ namespace _GameData.Scripts.UI
             quitButton.onClick.RemoveAllListeners();
         }
 
-        private void QuickPlayClickHandler() => _networkManager.StartHost();
-        private void CreateLobbyClickHandler() => _menuTransitionManager.ChangeState(MenuStates.CreateLobby);
-        private void LobbyBrowserClickHandler() => _menuTransitionManager.ChangeState(MenuStates.LobbyBrowser);
+        private async void QuickPlayClickHandler()
+        {
+            try
+            {
+                QuickJoinLobbyOptions quickJoinLobbyOptions = new QuickJoinLobbyOptions()
+                {
+                    Player = new Player()
+                    {
+                        Data = new Dictionary<string, PlayerDataObject>()
+                        {
+                            { "PlayerName", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, "Player2") }
+                        }
+                    }
+                };
+                
+                var joinedLobby = await LobbyService.Instance.QuickJoinLobbyAsync(quickJoinLobbyOptions);
+                menuTransitionManager.CurrentLobby = joinedLobby;
+                menuTransitionManager.ChangeState(MenuStates.Lobby);
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.LogError(e);
+                menuTransitionManager.ShowNotification(e.Message);
+            }
+        }
+        
+        private void CreateLobbyClickHandler() => menuTransitionManager.ChangeState(MenuStates.CreateLobby);
+        private void LobbyBrowserClickHandler() => menuTransitionManager.ChangeState(MenuStates.LobbyBrowser);
         private void SettingsClickHandler()
         {
             
