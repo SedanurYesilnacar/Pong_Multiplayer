@@ -1,9 +1,6 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using Unity.Services.Lobbies;
-using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -20,9 +17,12 @@ namespace _GameData.Scripts.UI
         private List<LobbyEntryController> _displayedLobbies = new List<LobbyEntryController>();
 
         private const float RefreshRateTime = 1.5f;
+        private WaitForSeconds _refreshDelay;
 
         private void Start()
         {
+            _refreshDelay = new WaitForSeconds(RefreshRateTime);
+            
             backButton.onClick.AddListener(BackClickHandler);
             refreshButton.onClick.AddListener(RefreshClickHandler);
         }
@@ -40,12 +40,7 @@ namespace _GameData.Scripts.UI
             //     Filters = new List<QueryFilter>() { new QueryFilter(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT) },
             //     Order = new List<QueryOrder>() { new QueryOrder(false, QueryOrder.FieldOptions.Created) }
             // };
-            for (int i = 0; i < _displayedLobbies.Count; i++)
-            {
-                Destroy(_displayedLobbies[i].gameObject);
-            }
-            
-            _displayedLobbies.Clear();
+            ClearLobbies();
 
             try
             {
@@ -55,22 +50,33 @@ namespace _GameData.Scripts.UI
                     var currentLobby = queryResponse.Results[i];
                     var spawnedLobby = Instantiate(lobbyPrefab, lobbyContainer);
                     var spawnedLobbyEntryController = spawnedLobby.GetComponent<LobbyEntryController>();
-                    spawnedLobbyEntryController.Init(currentLobby);
+                    spawnedLobbyEntryController.Init(menuTransitionManager, currentLobby);
                     _displayedLobbies.Add(spawnedLobbyEntryController);
                 }
             }
             catch (LobbyServiceException e)
             {
                 Debug.LogError(e);
+                menuTransitionManager.ShowNotification(e.Message);
             }
 
             refreshButton.interactable = false;
             StartCoroutine(RefreshRoutine());
         }
 
+        private void ClearLobbies()
+        {
+            for (int i = 0; i < _displayedLobbies.Count; i++)
+            {
+                Destroy(_displayedLobbies[i].gameObject);
+            }
+            
+            _displayedLobbies.Clear();
+        }
+
         private IEnumerator RefreshRoutine()
         {
-            yield return new WaitForSeconds(RefreshRateTime);
+            yield return _refreshDelay;
 
             refreshButton.interactable = true;
         }

@@ -1,4 +1,6 @@
+using System;
 using TMPro;
+using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using UnityEngine.UI;
@@ -11,10 +13,32 @@ namespace _GameData.Scripts.UI
         [SerializeField] private TMP_Text lobbyOwnerNameText;
         [SerializeField] private Button lobbyJoinButton;
 
-        public void Init(Lobby lobbyInfo)
+        private MenuTransitionManager _menuTransitionManager;
+        private Lobby _currentLobby;
+
+        public void Init(MenuTransitionManager menuTransitionManager, Lobby lobbyInfo)
         {
-            lobbyNameText.text = lobbyInfo.Name;
-            lobbyOwnerNameText.text = lobbyInfo.Players[0].Id;
+            _menuTransitionManager = menuTransitionManager;
+            _currentLobby = lobbyInfo;
+            
+            lobbyNameText.text = _currentLobby.Name;
+            lobbyOwnerNameText.text = _currentLobby.Players[0].Id;
+            
+            lobbyJoinButton.onClick.AddListener(LobbyJoinClickHandler);
+        }
+
+        private async void LobbyJoinClickHandler()
+        {
+            try
+            {
+                _menuTransitionManager.CurrentLobby = await LobbyService.Instance.JoinLobbyByIdAsync(_currentLobby.Id);
+                _menuTransitionManager.ChangeState(MenuStates.Lobby);
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.LogError(e);
+                _menuTransitionManager.ShowNotification(e.Message);
+            }
         }
     }
 }
