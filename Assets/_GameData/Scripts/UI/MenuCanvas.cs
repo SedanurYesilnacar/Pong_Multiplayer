@@ -1,10 +1,9 @@
-using System;
 using System.Collections.Generic;
+using _GameData.Scripts.Core;
 using Unity.Netcode;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace _GameData.Scripts.UI
@@ -61,17 +60,11 @@ namespace _GameData.Scripts.UI
             {
                 QuickJoinLobbyOptions quickJoinLobbyOptions = new QuickJoinLobbyOptions()
                 {
-                    Player = new Player()
-                    {
-                        Data = new Dictionary<string, PlayerDataObject>()
-                        {
-                            { "PlayerName", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, "Player2") }
-                        }
-                    }
+                    Player = LobbyManager.Instance.Player
                 };
                 
                 var joinedLobby = await LobbyService.Instance.QuickJoinLobbyAsync(quickJoinLobbyOptions);
-                menuTransitionManager.CurrentLobby = joinedLobby;
+                LobbyManager.Instance.JoinedLobby = joinedLobby;
                 menuTransitionManager.ChangeState(MenuStates.Lobby);
             }
             catch (LobbyServiceException e)

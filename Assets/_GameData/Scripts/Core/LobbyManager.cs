@@ -1,11 +1,6 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using _GameData.Scripts.UI;
-using QFSW.QC;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
-using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
 
@@ -13,16 +8,29 @@ namespace _GameData.Scripts.Core
 {
     public class LobbyManager : MonoBehaviour
     {
-        [SerializeField] private MenuTransitionManager menuTransitionManager;
-        [SerializeField] private CreateLobbyCanvas createLobbyCanvas;
-        
-        private WaitForSeconds _heartbeatTimer; // Active lifespan = 30s
-        private Lobby _createdLobby;
-        
+        public static LobbyManager Instance { get; private set; }
+
+        public Lobby JoinedLobby { get; set; }
+        public Player Player { get; private set; }
+
+        private const string PlayerNameKey = "PlayerName";
+        private const string PlayerBaseName = "Player";
+
         private void Awake()
         {
-            _heartbeatTimer = new WaitForSeconds(25f);
-            
+            InitSingleton();
+        }
+        
+        private void InitSingleton()
+        {
+            if (Instance != null && Instance != this)
+            {
+                Destroy(gameObject);
+            }
+            else
+            {
+                Instance = this;
+            }
             DontDestroyOnLoad(this);
         }
 
@@ -32,6 +40,8 @@ namespace _GameData.Scripts.Core
 
             AuthenticationService.Instance.SignedIn += SignedInHandler;
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
+            
+            CreatePlayer();
         }
 
         private void SignedInHandler()
@@ -39,67 +49,17 @@ namespace _GameData.Scripts.Core
             Debug.Log(AuthenticationService.Instance.PlayerId);
         }
 
-        [Command]
-        private async void ListLobbies()
+        private void CreatePlayer()
         {
-            QueryLobbiesOptions queryOption = new QueryLobbiesOptions()
-            {
-                Count = 25,
-                Filters = new List<QueryFilter>() { new QueryFilter(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT) },
-                Order = new List<QueryOrder>() { new QueryOrder(false, QueryOrder.FieldOptions.Created) }
-            };
+            var playerName = PlayerBaseName + Random.Range(1, 101);
             
-            try
+            Player = new Player()
             {
-                var queryResponse = await LobbyService.Instance.QueryLobbiesAsync(queryOption);
-                Debug.Log("Found lobbies : " + queryResponse.Results.Count);
-                for (int i = 0; i < queryResponse.Results.Count; i++)
+                Data = new Dictionary<string, PlayerDataObject>()
                 {
-                    Debug.Log(queryResponse.Results[i].Name + " " + (queryResponse.Results[i].MaxPlayers - queryResponse.Results[i].AvailableSlots) + "/" + queryResponse.Results[i].MaxPlayers);
+                    { PlayerNameKey, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, playerName) }
                 }
-            }
-            catch (LobbyServiceException e)
-            {
-                Debug.LogError(e);
-            }
-        }
-
-        [Command]
-        private async void JoinLobbyByCode(string lobbyCode)
-        {
-            try
-            {
-                await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode);
-                
-                Debug.Log("Joined lobby");
-            }
-            catch (LobbyServiceException e)
-            {
-                Debug.LogError(e);
-            }
-        }
-
-        [Command]
-        private async void QuickJoin()
-        {
-            try
-            {
-                await LobbyService.Instance.QuickJoinLobbyAsync();
-            }
-            catch (LobbyServiceException e)
-            {
-                Debug.LogError(e);
-            }
-        }
-
-        [Command]
-        private void PrintPlayers(Lobby targetLobby)
-        {
-            Debug.Log("Players in lobby : " + targetLobby.Name);
-            for (int i = 0; i < targetLobby.Players.Count; i++)
-            {
-                Debug.Log(targetLobby.Players[i].Id);
-            }
+            };
         }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using _GameData.Scripts.Core;
 using TMPro;
 using Unity.Services.Authentication;
 using Unity.Services.Lobbies;
@@ -31,7 +32,7 @@ namespace _GameData.Scripts.UI
 
         private void SetupLobby()
         {
-            _currentLobby = menuTransitionManager.CurrentLobby;
+            _currentLobby = LobbyManager.Instance.JoinedLobby;
             if (_currentLobby == null)
             {
                 Debug.LogError("Lobby null");
@@ -79,7 +80,7 @@ namespace _GameData.Scripts.UI
                 Debug.Log(_currentLobby.Id); 
                 await LobbyService.Instance.RemovePlayerAsync(_currentLobby.Id, _ownerId);
                 
-                menuTransitionManager.CurrentLobby = null;
+                LobbyManager.Instance.JoinedLobby = null;
                 menuTransitionManager.ChangeState(MenuStates.MainMenu);
             
                 leaveButton.onClick.RemoveAllListeners();

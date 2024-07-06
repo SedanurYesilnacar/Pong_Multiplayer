@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using _GameData.Scripts.Core;
 using TMPro;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
@@ -31,7 +33,12 @@ namespace _GameData.Scripts.UI
         {
             try
             {
-                _menuTransitionManager.CurrentLobby = await LobbyService.Instance.JoinLobbyByIdAsync(_currentLobby.Id);
+                JoinLobbyByIdOptions joinLobbyByIdOptions = new JoinLobbyByIdOptions()
+                {
+                    Player = LobbyManager.Instance.Player
+                };
+                
+                LobbyManager.Instance.JoinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(_currentLobby.Id, joinLobbyByIdOptions);
                 _menuTransitionManager.ChangeState(MenuStates.Lobby);
             }
             catch (LobbyServiceException e)

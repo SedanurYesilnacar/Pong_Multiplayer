@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using _GameData.Scripts.Core;
 using TMPro;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
@@ -49,22 +50,14 @@ namespace _GameData.Scripts.UI
             CreateLobbyOptions lobbyOptions = new CreateLobbyOptions
             {
                 IsPrivate = userLobbyOptions.LobbyAccessibilityType == LobbyAccessibilityType.Private,
-                Player = new Player()
-                {
-                    Data = new Dictionary<string, PlayerDataObject>()
-                    {
-                        { "PlayerName", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, "Player1") }
-                    }
-                }
+                Player = LobbyManager.Instance.Player
             };
             
             try
             {
                 _createdLobby = await LobbyService.Instance.CreateLobbyAsync(userLobbyOptions.LobbyName, 2, lobbyOptions);
                 StartCoroutine(HeartbeatRoutine());
-                Debug.Log(_createdLobby.Name);
-                Debug.Log(_createdLobby.MaxPlayers);
-                menuTransitionManager.CurrentLobby = _createdLobby;
+                LobbyManager.Instance.JoinedLobby = _createdLobby;
                 menuTransitionManager.ChangeState(MenuStates.Lobby);
             }
             catch (LobbyServiceException e)

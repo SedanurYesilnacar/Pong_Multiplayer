@@ -12,16 +12,9 @@ namespace _GameData.Scripts.UI
 
         private Canvas _currentCanvas;
         
-        public Lobby CurrentLobby { get; set; }
-
         private void Start()
         {
             ChangeState(MenuStates.MainMenu);
-        }
-
-        private void Update()
-        {
-            if(Input.GetKeyDown(KeyCode.T)) Debug.Log(CurrentLobby.Id);
         }
 
         public void ChangeState(MenuStates targetState)
