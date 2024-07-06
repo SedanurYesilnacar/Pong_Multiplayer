@@ -28,6 +28,7 @@ namespace _GameData.Scripts.UI
             SetupLobby();
             
             leaveButton.onClick.AddListener(LeaveClickHandler);
+            LobbyManager.Instance.OnLobbyPlayersUpdateRequested += OnLobbyPlayersUpdateRequestedHandler;
         }
 
         private void SetupLobby()
@@ -60,11 +61,15 @@ namespace _GameData.Scripts.UI
 
         private void UpdateLobbyPlayers()
         {
-            for (int i = 0; i < _currentLobby.Players.Count; i++)
+            for (int i = 0; i < lobbyUserControllers.Length; i++)
             {
-                var isUserHost = IsPlayerHost(_currentLobby.Players[i].Id);
-                lobbyUserControllers[i].ChangeUserType(_isOwnerHost, isUserHost);
-                lobbyUserControllers[i].SetPlayerCredentials(_currentLobby.Players[i].Data["PlayerName"].Value);
+                if (i >= _currentLobby.Players.Count || _currentLobby.Players[i] == null) lobbyUserControllers[i].ResetUser();
+                else
+                {
+                    var isUserHost = IsPlayerHost(_currentLobby.Players[i].Id);
+                    lobbyUserControllers[i].ChangeUserType(_isOwnerHost, isUserHost);
+                    lobbyUserControllers[i].UpdateUser(_currentLobby.Players[i]);
+                }
             }
         }
 
@@ -77,19 +82,24 @@ namespace _GameData.Scripts.UI
         {
             try
             {
-                Debug.Log(_currentLobby.Id); 
                 await LobbyService.Instance.RemovePlayerAsync(_currentLobby.Id, _ownerId);
                 
                 LobbyManager.Instance.JoinedLobby = null;
                 menuTransitionManager.ChangeState(MenuStates.MainMenu);
             
                 leaveButton.onClick.RemoveAllListeners();
+                LobbyManager.Instance.OnLobbyPlayersUpdateRequested -= OnLobbyPlayersUpdateRequestedHandler;
             }
             catch (LobbyServiceException e)
             {
                 Debug.LogError(e);
                 if (e.Reason != LobbyExceptionReason.LobbyNotFound) menuTransitionManager.ShowNotification(e.Message);
             }
+        }
+
+        private void OnLobbyPlayersUpdateRequestedHandler()
+        {
+            UpdateLobbyPlayers();
         }
     }
 }

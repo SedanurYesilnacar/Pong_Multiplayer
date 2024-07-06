@@ -472,9 +472,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerNameText: {fileID: 7565541965557592994}
+  kickButton: {fileID: 4731987193791857655}
   readyIcon: {fileID: 105443552956639984}
   hostIcon: {fileID: 4634345493524915301}
-  kickIcon: {fileID: 1103420357821464102}
 --- !u!1 &5715784333354048418
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Unity.Services.Lobbies.Models;
+using _GameData.Scripts.Core;
 using UnityEngine;
 
 namespace _GameData.Scripts.UI
@@ -11,10 +11,13 @@ namespace _GameData.Scripts.UI
         [SerializeField] private NotificationCanvas notificationCanvas;
 
         private Canvas _currentCanvas;
+        private const string KickMessage = "You've been kicked from the lobby";
         
         private void Start()
         {
             ChangeState(MenuStates.MainMenu);
+
+            LobbyManager.Instance.OnPlayerKicked += OnPlayerKickedHandler;
         }
 
         public void ChangeState(MenuStates targetState)
@@ -29,6 +32,17 @@ namespace _GameData.Scripts.UI
         public void ShowNotification(string message)
         {
             notificationCanvas.Show(message);
+        }
+
+        private void OnPlayerKickedHandler()
+        {
+            ShowNotification(KickMessage);
+            ChangeState(MenuStates.MainMenu);
+        }
+
+        private void OnDisable()
+        {
+            LobbyManager.Instance.OnPlayerKicked -= OnPlayerKickedHandler;
         }
     }
 
