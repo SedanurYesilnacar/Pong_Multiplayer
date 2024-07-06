@@ -92,7 +92,7 @@ namespace _GameData.Scripts.UI
             }
             catch (LobbyServiceException e)
             {
-                Debug.LogError(e);
+                Debug.LogError(e.Message);
                 if (e.Reason != LobbyExceptionReason.LobbyNotFound) menuTransitionManager.ShowNotification(e.Message);
             }
         }

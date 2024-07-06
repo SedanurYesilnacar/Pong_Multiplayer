@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.Services.Lobbies;
 using UnityEngine;
 using UnityEngine.UI;
@@ -40,14 +41,19 @@ namespace _GameData.Scripts.UI
             //     Filters = new List<QueryFilter>() { new QueryFilter(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT) },
             //     Order = new List<QueryOrder>() { new QueryOrder(false, QueryOrder.FieldOptions.Created) }
             // };
+            refreshButton.interactable = false;
+            StartCoroutine(RefreshRoutine());
+            
             ClearLobbies();
 
             try
             {
                 var queryResponse = await LobbyService.Instance.QueryLobbiesAsync();
-                for (int i = 0; i < queryResponse.Results.Count; i++)
+                var uniqueQueryResponseResults = queryResponse.Results.Distinct().ToList();
+                
+                for (int i = 0; i < uniqueQueryResponseResults.Count; i++)
                 {
-                    var currentLobby = queryResponse.Results[i];
+                    var currentLobby = uniqueQueryResponseResults[i];
                     var spawnedLobby = Instantiate(lobbyPrefab, lobbyContainer);
                     var spawnedLobbyEntryController = spawnedLobby.GetComponent<LobbyEntryController>();
                     spawnedLobbyEntryController.Init(menuTransitionManager, currentLobby);
@@ -56,12 +62,9 @@ namespace _GameData.Scripts.UI
             }
             catch (LobbyServiceException e)
             {
-                Debug.LogError(e);
+                Debug.LogError(e.Message);
                 menuTransitionManager.ShowNotification(e.Message);
             }
-
-            refreshButton.interactable = false;
-            StartCoroutine(RefreshRoutine());
         }
 
         private void ClearLobbies()

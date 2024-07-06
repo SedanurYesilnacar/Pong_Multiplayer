@@ -50,7 +50,7 @@ namespace _GameData.Scripts.UI
             }
             catch (LobbyServiceException e)
             {
-                Debug.LogError(e);
+                Debug.LogError(e.Message);
             }
         }
     }
