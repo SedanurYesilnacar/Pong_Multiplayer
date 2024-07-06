@@ -13,7 +13,7 @@ namespace _GameData.Scripts.UI
     {
         [SerializeField] private MenuTransitionManager menuTransitionManager;
         [SerializeField] private LobbyAccessibilityToggle lobbyAccessibilityToggle;
-        [SerializeField] private TMP_Text lobbyNameText;
+        [SerializeField] private TMP_InputField lobbyNameText;
         [SerializeField] private Button createLobbyButton;
         [SerializeField] private Button backButton;
 
@@ -31,7 +31,7 @@ namespace _GameData.Scripts.UI
 
         private LobbyCreateOptions GetLobbyOptions()
         {
-            if (String.IsNullOrWhiteSpace(lobbyNameText.text) || String.IsNullOrEmpty(lobbyNameText.text)) _lobbyName = DefaultLobbyName;
+            if (string.IsNullOrWhiteSpace(lobbyNameText.text) || string.IsNullOrEmpty(lobbyNameText.text)) _lobbyName = DefaultLobbyName;
             else _lobbyName = lobbyNameText.text;
 
             LobbyCreateOptions newLobbyCreateOptions = new LobbyCreateOptions()

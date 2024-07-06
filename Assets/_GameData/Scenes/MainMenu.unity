@@ -239,7 +239,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   menuTransitionManager: {fileID: 2129992831}
   lobbyAccessibilityToggle: {fileID: 1412411280}
-  lobbyNameText: {fileID: 1947876183}
+  lobbyNameText: {fileID: 2137292061}
   createLobbyButton: {fileID: 777385290}
   backButton: {fileID: 383197598}
 --- !u!1 &24970089
@@ -3408,7 +3408,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 0, y: 200}
+  m_AnchoredPosition: {x: 0, y: 400}
   m_SizeDelta: {x: 1500, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &799636579
