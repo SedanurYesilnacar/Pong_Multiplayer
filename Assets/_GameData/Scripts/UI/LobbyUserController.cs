@@ -39,11 +39,15 @@ namespace _GameData.Scripts.UI
         {
             _currentPlayer = player;
             playerNameText.text = player.Data[LobbyManager.Instance.PlayerNameKey].Value;
+            readyIcon.SetActive(player.Data[LobbyManager.Instance.PlayerReadyKey].Value == "true");
+            
             kickButton.onClick.AddListener(KickClickHandler);
         }
 
         private async void KickClickHandler()
         {
+            kickButton.interactable = false;
+            
             try
             {
                 await LobbyService.Instance.RemovePlayerAsync(LobbyManager.Instance.JoinedLobby.Id, _currentPlayer.Id);
@@ -52,6 +56,8 @@ namespace _GameData.Scripts.UI
             {
                 Debug.LogError(e.Message);
             }
+
+            kickButton.interactable = true;
         }
     }
 }

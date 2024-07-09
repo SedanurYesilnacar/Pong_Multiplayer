@@ -16,24 +16,44 @@ namespace _GameData.Scripts.UI
         [SerializeField] private TMP_Text lobbyCodeText;
         [SerializeField] private Button startGameButton;
         [SerializeField] private Button leaveButton;
+        [SerializeField] private Button readyButton;
         [SerializeField] private LobbyUserController[] lobbyUserControllers;
 
+        private LobbyManager _lobbyManager;
         private Lobby _currentLobby;
         private bool _isOwnerHost;
         private string _ownerId;
 
         public void Init()
         {
+            if (!_lobbyManager) _lobbyManager = LobbyManager.Instance;
             _ownerId = AuthenticationService.Instance.PlayerId;
             SetupLobby();
             
-            leaveButton.onClick.AddListener(LeaveClickHandler);
-            LobbyManager.Instance.OnLobbyPlayersUpdateRequested += OnLobbyPlayersUpdateRequestedHandler;
+            SubscribeEvents();
         }
 
+        private void SubscribeEvents()
+        {
+            leaveButton.onClick.AddListener(LeaveClickHandler);
+            readyButton.onClick.AddListener(ReadyClickHandler);
+            _lobbyManager.OnLobbyPlayersUpdateRequested += OnLobbyPlayersUpdateRequestedHandler;
+            _lobbyManager.OnPlayerKicked += OnPlayerKickedHandler;
+            Debug.Log("OnLobbyPlayersUpdateRequested subscribed");
+        }
+
+        private void UnsubscribeEvents()
+        {
+            leaveButton.onClick.RemoveAllListeners();
+            readyButton.onClick.RemoveAllListeners();
+            _lobbyManager.OnLobbyPlayersUpdateRequested -= OnLobbyPlayersUpdateRequestedHandler;
+            _lobbyManager.OnPlayerKicked -= OnPlayerKickedHandler;
+            Debug.Log("OnLobbyPlayersUpdateRequested unsubscribed");
+        }
+        
         private void SetupLobby()
         {
-            _currentLobby = LobbyManager.Instance.JoinedLobby;
+            _currentLobby = _lobbyManager.JoinedLobby;
             if (_currentLobby == null)
             {
                 Debug.LogError("Lobby null");
@@ -84,11 +104,10 @@ namespace _GameData.Scripts.UI
             {
                 await LobbyService.Instance.RemovePlayerAsync(_currentLobby.Id, _ownerId);
                 
-                LobbyManager.Instance.JoinedLobby = null;
+                _lobbyManager.JoinedLobby = null;
                 menuTransitionManager.ChangeState(MenuStates.MainMenu);
             
-                leaveButton.onClick.RemoveAllListeners();
-                LobbyManager.Instance.OnLobbyPlayersUpdateRequested -= OnLobbyPlayersUpdateRequestedHandler;
+                UnsubscribeEvents();
             }
             catch (LobbyServiceException e)
             {
@@ -96,10 +115,41 @@ namespace _GameData.Scripts.UI
                 if (e.Reason != LobbyExceptionReason.LobbyNotFound) menuTransitionManager.ShowNotification(e.Message);
             }
         }
+        
+        private async void ReadyClickHandler()
+        {
+            readyButton.interactable = false;
+            
+            try
+            {
+                var currentReadyStatus = _lobbyManager.Player.Data[_lobbyManager.PlayerReadyKey].Value == "true";
+                _lobbyManager.Player.Data[_lobbyManager.PlayerReadyKey] = new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, currentReadyStatus ? "false" : "true");
+                UpdatePlayerOptions updatePlayerOptions = new UpdatePlayerOptions()
+                {
+                    AllocationId = _lobbyManager.Player.AllocationId,
+                    ConnectionInfo = _lobbyManager.Player.ConnectionInfo,
+                    Data = _lobbyManager.Player.Data
+                };
+               
+                Debug.Log("-----" + updatePlayerOptions.Data[_lobbyManager.PlayerReadyKey].Value);
+                await Lobbies.Instance.UpdatePlayerAsync(_lobbyManager.JoinedLobby.Id, _ownerId, updatePlayerOptions);
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.LogError(e.Message);
+            }
+
+            readyButton.interactable = true;
+        }
 
         private void OnLobbyPlayersUpdateRequestedHandler()
         {
             UpdateLobbyPlayers();
+        }
+
+        private void OnPlayerKickedHandler()
+        {
+            UnsubscribeEvents();
         }
     }
 }

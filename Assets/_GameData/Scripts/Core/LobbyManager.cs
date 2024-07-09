@@ -38,6 +38,7 @@ namespace _GameData.Scripts.Core
         public event Action OnPlayerKicked;
 
         public string PlayerNameKey { get; private set; } = "PlayerName";
+        public string PlayerReadyKey { get; private set; } = "IsReady";
         private const string PlayerBaseName = "Player";
 
         private void Awake()
@@ -81,7 +82,8 @@ namespace _GameData.Scripts.Core
             {
                 Data = new Dictionary<string, PlayerDataObject>()
                 {
-                    { PlayerNameKey, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, playerName) }
+                    { PlayerNameKey, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, playerName) },
+                    { PlayerReadyKey, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, "false") }
                 }
             };
         }
@@ -91,6 +93,7 @@ namespace _GameData.Scripts.Core
             _lobbyEventCallbacks = new LobbyEventCallbacks();
             _lobbyEventCallbacks.LobbyChanged += OnLobbyChanged;
             _lobbyEventCallbacks.KickedFromLobby += OnKickedFromLobby;
+            _lobbyEventCallbacks.PlayerDataChanged += OnPlayerDataChanged;
 
             try
             {
@@ -113,6 +116,8 @@ namespace _GameData.Scripts.Core
             
             _lobbyEventCallbacks.LobbyChanged -= OnLobbyChanged;
             _lobbyEventCallbacks.KickedFromLobby -= OnKickedFromLobby;
+            _lobbyEventCallbacks.PlayerDataChanged -= OnPlayerDataChanged;
+            Debug.Log("unsubscribed");
         }
 
         private void OnLobbyChanged(ILobbyChanges lobbyChanges)
@@ -136,6 +141,12 @@ namespace _GameData.Scripts.Core
         {
             JoinedLobby = null;
             OnPlayerKicked?.Invoke();
+        }
+
+        private void OnPlayerDataChanged(Dictionary<int, Dictionary<string, ChangedOrRemovedLobbyValue<PlayerDataObject>>> obj)
+        {
+            Debug.Log("player data changed");
+            OnLobbyPlayersUpdateRequested?.Invoke();
         }
     }
 }

@@ -23,11 +23,17 @@ namespace _GameData.Scripts.UI
         private Lobby _createdLobby;
         private WaitForSeconds _heartbeatTimer; // Active lifespan = 30s
 
+        private void Start()
+        {
+            backButton.onClick.AddListener(BackClickHandler);
+        }
+
         public void Init()
         {
             _heartbeatTimer = new WaitForSeconds(25f);
+            
+            createLobbyButton.onClick.RemoveAllListeners();
             createLobbyButton.onClick.AddListener(CreateLobbyClickHandler);
-            backButton.onClick.AddListener(BackClickHandler);
         }
 
         private LobbyCreateOptions GetLobbyOptions()
@@ -43,7 +49,17 @@ namespace _GameData.Scripts.UI
             
             return newLobbyCreateOptions;
         }
-        
+
+        private IEnumerator HeartbeatRoutine()
+        {
+            yield return _heartbeatTimer;
+            
+            if (_createdLobby == null) yield break;
+            
+            yield return LobbyService.Instance.SendHeartbeatPingAsync(_createdLobby.Id);
+            StartCoroutine(HeartbeatRoutine());
+        }
+
         private async void CreateLobbyClickHandler()
         {
             var userLobbyOptions = GetLobbyOptions();
@@ -67,19 +83,15 @@ namespace _GameData.Scripts.UI
             }
         }
 
-        private IEnumerator HeartbeatRoutine()
-        {
-            yield return _heartbeatTimer;
-            
-            if (_createdLobby == null) yield break;
-            
-            yield return LobbyService.Instance.SendHeartbeatPingAsync(_createdLobby.Id);
-            StartCoroutine(HeartbeatRoutine());
-        }
-
         private void BackClickHandler()
         {
             menuTransitionManager.ChangeState(MenuStates.MainMenu);
+        }
+
+        private void OnDisable()
+        {
+            createLobbyButton.onClick.RemoveAllListeners();
+            backButton.onClick.RemoveAllListeners();
         }
     }
 
