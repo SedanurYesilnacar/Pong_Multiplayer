@@ -62,12 +62,11 @@ namespace _GameData.Scripts.UI
                 return;
             }
 
-            _isOwnerHost = IsPlayerHost(_ownerId);
             lobbyNameText.text = _currentLobby.Name;
             if (!_currentLobby.IsPrivate) lobbyCodeText.gameObject.SetActive(false);
             else lobbyCodeText.text = "Lobby Code: " + _currentLobby.LobbyCode;
-            startGameButton.gameObject.SetActive(_isOwnerHost);
-
+            UpdateLobby();
+            
             if (lobbyUserControllers.Length < _currentLobby.MaxPlayers)
             {
                 Debug.LogError("Lobby user count can not be less than " + _currentLobby.MaxPlayers);
@@ -77,6 +76,12 @@ namespace _GameData.Scripts.UI
             }
             
             UpdateLobbyPlayers();
+        }
+
+        private void UpdateLobby()
+        {
+            _isOwnerHost = IsPlayerHost(_ownerId);
+            startGameButton.gameObject.SetActive(_isOwnerHost);
         }
 
         private void UpdateLobbyPlayers()
@@ -144,6 +149,7 @@ namespace _GameData.Scripts.UI
 
         private void OnLobbyPlayersUpdateRequestedHandler()
         {
+            UpdateLobby();
             UpdateLobbyPlayers();
         }
 
