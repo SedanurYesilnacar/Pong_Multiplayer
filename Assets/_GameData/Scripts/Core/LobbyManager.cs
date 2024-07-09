@@ -23,6 +23,7 @@ namespace _GameData.Scripts.Core
                 _joinedLobby = value;
                 if (_joinedLobby == null)
                 {
+                    ResetLobbyReadyCount();
                     UnsubscribeLobbyEvents();
                 }
                 else
@@ -33,13 +34,21 @@ namespace _GameData.Scripts.Core
         }
 
         public Player Player { get; private set; }
-        private LobbyEventCallbacks _lobbyEventCallbacks;
-        public event Action OnLobbyPlayersUpdateRequested;
-        public event Action OnPlayerKicked;
-
         public string PlayerNameKey { get; private set; } = "PlayerName";
         public string PlayerReadyKey { get; private set; } = "IsReady";
+        public int ReadyPlayerCount { get; private set; } = 0;
+        public bool IsGameStartAllowed { get; private set; } = false;
+        public string PlayerId { get; private set; }
+        public bool IsOwnerHost => IsPlayerHost(PlayerId);
+        
+        private int _readyPlayerCount;
         private const string PlayerBaseName = "Player";
+        
+        private LobbyEventCallbacks _lobbyEventCallbacks;
+        public event Action OnPlayerKicked;
+        public event Action OnLobbyPlayerDataChanged;
+        public event Action OnJoinedPlayersChanged;
+        public event Action OnGameStartPermissionChanged;
 
         private void Awake()
         {
@@ -71,7 +80,7 @@ namespace _GameData.Scripts.Core
 
         private void SignedInHandler()
         {
-            Debug.Log(AuthenticationService.Instance.PlayerId);
+            PlayerId = AuthenticationService.Instance.PlayerId;
         }
 
         private void CreatePlayer()
@@ -86,6 +95,11 @@ namespace _GameData.Scripts.Core
                     { PlayerReadyKey, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, "false") }
                 }
             };
+        }
+        
+        public bool IsPlayerHost(string playerId)
+        {
+            return JoinedLobby.HostId == playerId;
         }
 
         private async void SubscribeLobbyEvents()
@@ -119,6 +133,36 @@ namespace _GameData.Scripts.Core
             _lobbyEventCallbacks.PlayerDataChanged -= OnPlayerDataChanged;
             Debug.Log("unsubscribed");
         }
+        
+        private void CheckGameStartAllowed()
+        {
+            Debug.Log("CheckGameStartAllowed...");
+            if (!IsOwnerHost || JoinedLobby.Players.Count < JoinedLobby.MaxPlayers)
+            {
+                IsGameStartAllowed = false;
+                OnGameStartPermissionChanged?.Invoke();
+                return;
+            }
+
+            var playersInLobby = JoinedLobby.Players;
+            for (int i = 0; i < playersInLobby.Count; i++)
+            {
+                if (playersInLobby[i].Data[PlayerReadyKey].Value == "false")
+                {
+                    IsGameStartAllowed = false;
+                    OnGameStartPermissionChanged?.Invoke();
+                    return;
+                }
+            }
+
+            IsGameStartAllowed = true;
+            OnGameStartPermissionChanged?.Invoke();
+        }
+
+        private void ResetLobbyReadyCount()
+        {
+            ReadyPlayerCount = 0;
+        }
 
         private void OnLobbyChanged(ILobbyChanges lobbyChanges)
         {
@@ -133,7 +177,8 @@ namespace _GameData.Scripts.Core
 
             if (lobbyChanges.PlayerLeft.Changed || lobbyChanges.PlayerJoined.Changed)
             {
-                OnLobbyPlayersUpdateRequested?.Invoke();
+                ResetLobbyReadyCount();
+                OnJoinedPlayersChanged?.Invoke();
             }
         }
 
@@ -146,7 +191,9 @@ namespace _GameData.Scripts.Core
         private void OnPlayerDataChanged(Dictionary<int, Dictionary<string, ChangedOrRemovedLobbyValue<PlayerDataObject>>> obj)
         {
             Debug.Log("player data changed");
-            OnLobbyPlayersUpdateRequested?.Invoke();
+            OnLobbyPlayerDataChanged?.Invoke();
+            
+            CheckGameStartAllowed();
         }
     }
 }
