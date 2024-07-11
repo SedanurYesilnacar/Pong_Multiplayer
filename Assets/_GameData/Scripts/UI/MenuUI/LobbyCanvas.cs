@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using _GameData.Scripts.Core;
 using TMPro;
 using Unity.Netcode;
@@ -150,9 +151,24 @@ namespace _GameData.Scripts.UI.MenuUI
             ChangeReadyStatus(!currentReadyStatus);
         }
 
-        private void StartGameClickHandler()
+        private async void StartGameClickHandler()
         {
-            NetworkManager.Singleton.StartHost();
+            UpdateLobbyOptions updateLobbyOptions = new UpdateLobbyOptions()
+            {
+                Data = new Dictionary<string, DataObject>()
+                {
+                    { _lobbyManager.LobbyStartKey, new DataObject(DataObject.VisibilityOptions.Member, "true") }
+                }
+            };
+            
+            try
+            {
+                await LobbyService.Instance.UpdateLobbyAsync(_lobbyManager.JoinedLobby.Id, updateLobbyOptions);
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.LogError(e);
+            }
         }
 
         private void OnLobbyPlayerDataChangedHandler()

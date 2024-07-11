@@ -11,6 +11,7 @@ namespace _GameData.Scripts.UI.MenuUI
         [SerializeField] private Button backButton;
 
         private bool _isInGame;
+        private NetworkManager _networkManager;
 
         private void OnEnable()
         {
@@ -24,16 +25,20 @@ namespace _GameData.Scripts.UI.MenuUI
 
         private void SubscribeEvents()
         {
+            if (!_networkManager) _networkManager = NetworkManager.Singleton;
+            
             backButton.onClick.AddListener(BackClickHandler);
-            NetworkManager.Singleton.OnServerStarted += OnServerStartedHandler;
-            NetworkManager.Singleton.OnServerStopped += OnServerStoppedHandler;
+            _networkManager.OnServerStarted += OnServerStartedHandler;
+            _networkManager.OnServerStopped += OnServerStoppedHandler;
         }
 
         private void UnsubscribeEvents()
         {
             backButton.onClick.RemoveAllListeners();
-            NetworkManager.Singleton.OnServerStarted -= OnServerStartedHandler;
-            NetworkManager.Singleton.OnServerStopped -= OnServerStoppedHandler;
+            
+            if (!_networkManager) return;
+            _networkManager.OnServerStarted -= OnServerStartedHandler;
+            _networkManager.OnServerStopped -= OnServerStoppedHandler;
         }
 
         private void BackClickHandler()

@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using Unity.Netcode;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
+using Unity.Services.Relay;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -35,7 +37,8 @@ namespace _GameData.Scripts.Core
 
         public Player Player { get; private set; }
         public string PlayerNameKey { get; private set; } = "PlayerName";
-        public string PlayerReadyKey { get; private set; } = "IsReady";
+        public string PlayerReadyKey { get; private set; } = "IsPlayerReady";
+        public string LobbyStartKey { get; private set; } = "IsGameStarted";
         public int ReadyPlayerCount { get; private set; } = 0;
         public bool IsGameStartAllowed { get; private set; } = false;
         public string PlayerId { get; private set; }
@@ -76,6 +79,8 @@ namespace _GameData.Scripts.Core
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
             
             CreatePlayer();
+            
+            (LobbyService.Instance as ILobbyServiceSDKConfiguration).EnableLocalPlayerLobbyEvents(true);
         }
 
         private void SignedInHandler()
@@ -105,6 +110,7 @@ namespace _GameData.Scripts.Core
         private async void SubscribeLobbyEvents()
         {
             _lobbyEventCallbacks = new LobbyEventCallbacks();
+            _lobbyEventCallbacks.DataAdded += OnDataAdded;
             _lobbyEventCallbacks.LobbyChanged += OnLobbyChanged;
             _lobbyEventCallbacks.KickedFromLobby += OnKickedFromLobby;
             _lobbyEventCallbacks.PlayerDataChanged += OnPlayerDataChanged;
@@ -127,16 +133,28 @@ namespace _GameData.Scripts.Core
         private void UnsubscribeLobbyEvents()
         {
             if (_lobbyEventCallbacks == null) return;
-            
+
+            _lobbyEventCallbacks.DataAdded -= OnDataAdded;
             _lobbyEventCallbacks.LobbyChanged -= OnLobbyChanged;
             _lobbyEventCallbacks.KickedFromLobby -= OnKickedFromLobby;
             _lobbyEventCallbacks.PlayerDataChanged -= OnPlayerDataChanged;
             Debug.Log("unsubscribed");
         }
+
+        private async void CreateRelay()
+        {
+            try
+            {
+                await RelayService.Instance.CreateAllocationAsync(1);
+            }
+            catch (RelayServiceException e)
+            {
+                Debug.LogError(e);
+            }
+        }
         
         private void CheckGameStartAllowed()
         {
-            Debug.Log("CheckGameStartAllowed...");
             if (!IsOwnerHost || JoinedLobby.Players.Count < JoinedLobby.MaxPlayers)
             {
                 IsGameStartAllowed = false;
@@ -164,6 +182,15 @@ namespace _GameData.Scripts.Core
             ReadyPlayerCount = 0;
         }
 
+        private void OnDataAdded(Dictionary<string, ChangedOrRemovedLobbyValue<DataObject>> changedOrRemovedLobbyValues)
+        {
+            Debug.Log("data added");
+            if (changedOrRemovedLobbyValues.ContainsKey(LobbyStartKey))
+            {
+                StartGame();
+            }
+        }
+
         private void OnLobbyChanged(ILobbyChanges lobbyChanges)
         {
             if (lobbyChanges.LobbyDeleted)
@@ -179,6 +206,19 @@ namespace _GameData.Scripts.Core
             {
                 ResetLobbyReadyCount();
                 OnJoinedPlayersChanged?.Invoke();
+            }
+        }
+
+        private void StartGame()
+        {
+            Debug.Log("--- GAME STARTING ---");
+            if (IsOwnerHost)
+            {
+                NetworkManager.Singleton.StartHost();
+            }
+            else
+            {
+                NetworkManager.Singleton.StartClient();
             }
         }
 
