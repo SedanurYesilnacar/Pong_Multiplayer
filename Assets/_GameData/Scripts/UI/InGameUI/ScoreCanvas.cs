@@ -1,9 +1,8 @@
-using System;
 using TMPro;
 using Unity.Netcode;
 using UnityEngine;
 
-namespace _GameData.Scripts.UI
+namespace _GameData.Scripts.UI.InGameUI
 {
     public class ScoreCanvas : NetworkBehaviour
     {

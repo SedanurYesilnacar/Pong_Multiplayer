@@ -1,14 +1,12 @@
-using System;
 using _GameData.Scripts.Core;
 using TMPro;
 using Unity.Netcode;
-using Unity.Services.Authentication;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace _GameData.Scripts.UI
+namespace _GameData.Scripts.UI.MenuUI
 {
     public class LobbyCanvas : MonoBehaviour, IInitializableCanvas
     {

@@ -1,7 +1,7 @@
 using TMPro;
 using UnityEngine;
 
-namespace _GameData.Scripts.UI
+namespace _GameData.Scripts.UI.MenuUI
 {
     public class LobbyAccessibilityToggle : MonoBehaviour
     {

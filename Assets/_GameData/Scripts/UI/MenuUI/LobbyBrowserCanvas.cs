@@ -5,7 +5,7 @@ using Unity.Services.Lobbies;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace _GameData.Scripts.UI
+namespace _GameData.Scripts.UI.MenuUI
 {
     public class LobbyBrowserCanvas : MonoBehaviour, IInitializableCanvas
     {

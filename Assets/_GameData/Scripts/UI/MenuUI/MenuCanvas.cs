@@ -1,12 +1,9 @@
-using System.Collections.Generic;
 using _GameData.Scripts.Core;
-using Unity.Netcode;
 using Unity.Services.Lobbies;
-using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace _GameData.Scripts.UI
+namespace _GameData.Scripts.UI.MenuUI
 {
     public class MenuCanvas : MonoBehaviour
     {
@@ -15,19 +12,12 @@ namespace _GameData.Scripts.UI
         [SerializeField] private Button createLobbyButton;
         [SerializeField] private Button lobbyBrowserButton;
         [SerializeField] private Button settingsButton;
+        [SerializeField] private Button resumeButton;
+        [SerializeField] private Button leaveGameButton;
         [SerializeField] private Button quitButton;
-
-        private NetworkManager _networkManager;
-
-        private void OnValidate()
-        {
-            menuTransitionManager = FindObjectOfType<MenuTransitionManager>();
-        }
 
         private void OnEnable()
         {
-            _networkManager = NetworkManager.Singleton;
-            
             SubscribeEvents();
         }
 
@@ -42,6 +32,8 @@ namespace _GameData.Scripts.UI
             createLobbyButton.onClick.AddListener(CreateLobbyClickHandler);
             lobbyBrowserButton.onClick.AddListener(LobbyBrowserClickHandler);
             settingsButton.onClick.AddListener(SettingsClickHandler);
+            resumeButton.onClick.AddListener(ResumeClickHandler);
+            leaveGameButton.onClick.AddListener(LeaveGameClickHandler);
             quitButton.onClick.AddListener(QuitClickHandler);
         }
 
@@ -51,6 +43,8 @@ namespace _GameData.Scripts.UI
             createLobbyButton.onClick.RemoveAllListeners();
             lobbyBrowserButton.onClick.RemoveAllListeners();
             settingsButton.onClick.RemoveAllListeners();
+            resumeButton.onClick.RemoveAllListeners();
+            leaveGameButton.onClick.RemoveAllListeners();
             quitButton.onClick.RemoveAllListeners();
         }
 
@@ -76,11 +70,13 @@ namespace _GameData.Scripts.UI
         
         private void CreateLobbyClickHandler() => menuTransitionManager.ChangeState(MenuStates.CreateLobby);
         private void LobbyBrowserClickHandler() => menuTransitionManager.ChangeState(MenuStates.LobbyBrowser);
-        private void SettingsClickHandler()
+        private void SettingsClickHandler() => menuTransitionManager.ChangeState(MenuStates.Settings);
+        private void ResumeClickHandler() => menuTransitionManager.ChangeState(MenuStates.None);
+        private void QuitClickHandler() => Application.Quit();
+
+        private void LeaveGameClickHandler()
         {
             
         }
-
-        private void QuitClickHandler() => Application.Quit();
     }
 }

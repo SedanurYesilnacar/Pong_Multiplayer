@@ -1,5 +1,6 @@
 using System;
 using _GameData.Scripts.UI;
+using _GameData.Scripts.UI.InGameUI;
 using Unity.Netcode;
 using UnityEngine;
 

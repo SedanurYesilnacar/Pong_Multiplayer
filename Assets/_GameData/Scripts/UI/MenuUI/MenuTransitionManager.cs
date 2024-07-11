@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using _GameData.Scripts.Core;
 using UnityEngine;
 
-namespace _GameData.Scripts.UI
+namespace _GameData.Scripts.UI.MenuUI
 {
     public class MenuTransitionManager : MonoBehaviour
     {
@@ -23,6 +23,12 @@ namespace _GameData.Scripts.UI
         public void ChangeState(MenuStates targetState)
         {
             if (_currentCanvas) _currentCanvas.enabled = false;
+            if (targetState == MenuStates.None)
+            {
+                _currentCanvas = null;
+                return;
+            }
+            
             var targetCanvas = menuStateCanvas.Find(i => i.state == targetState).canvas;
             _currentCanvas = targetCanvas;
             _currentCanvas.enabled = true;
@@ -55,12 +61,12 @@ namespace _GameData.Scripts.UI
 
     public enum MenuStates
     {
+        None,
         MainMenu,
         CreateLobby,
         LobbyBrowser,
         Settings,
         Loading,
         Lobby,
-        
     }
 }
