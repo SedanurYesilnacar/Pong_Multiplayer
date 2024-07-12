@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using _GameData.Scripts.Core;
 using TMPro;
@@ -141,7 +142,7 @@ namespace _GameData.Scripts.UI.MenuUI
             catch (LobbyServiceException e)
             {
                 Debug.LogError(e.Message);
-                if (e.Reason != LobbyExceptionReason.LobbyNotFound) menuTransitionManager.ShowNotification(e.Message);
+                menuTransitionManager.ShowNotification(e.Message);
             }
         }
         
@@ -192,6 +193,11 @@ namespace _GameData.Scripts.UI.MenuUI
         {
             Debug.Log("IsGameStartAllowed " + _lobbyManager.IsGameStartAllowed);
             startGameButton.interactable = _lobbyManager.IsGameStartAllowed;
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeEvents();
         }
     }
 }

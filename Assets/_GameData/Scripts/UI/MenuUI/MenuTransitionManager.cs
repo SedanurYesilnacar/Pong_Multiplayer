@@ -15,9 +15,15 @@ namespace _GameData.Scripts.UI.MenuUI
         
         private void Start()
         {
-            ChangeState(MenuStates.MainMenu);
+            LoadInitialState();
 
             LobbyManager.Instance.OnPlayerKicked += OnPlayerKickedHandler;
+        }
+
+        private void LoadInitialState()
+        {
+            if (LobbyManager.Instance.JoinedLobby != null) ChangeState(MenuStates.Lobby);
+            else ChangeState(MenuStates.MainMenu);
         }
 
         public void ChangeState(MenuStates targetState)

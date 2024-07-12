@@ -32,6 +32,7 @@ namespace _GameData.Scripts.Core
 
             NetworkManager.Singleton.OnServerStarted += InitNetworkSession;
             NetworkManager.Singleton.OnClientStarted += InitNetworkSession;
+            NetworkManager.Singleton.OnConnectionEvent += OnConnectionEventHandler;
             
             LoadingCanvas.Instance.Hide();
         }
@@ -40,10 +41,11 @@ namespace _GameData.Scripts.Core
         {
             NetworkManager.Singleton.OnServerStarted -= InitNetworkSession;
             NetworkManager.Singleton.OnServerStarted -= InitNetworkSession;
+            NetworkManager.Singleton.OnConnectionEvent -= OnConnectionEventHandler;
             
             base.OnNetworkDespawn();
         }
-        
+
         private void InitSingleton()
         {
             if (Instance != null && Instance != this)
@@ -83,6 +85,15 @@ namespace _GameData.Scripts.Core
             else
             {
                 SceneManager.LoadScene(sceneName, loadSceneMode);
+            }
+        }
+
+        private void OnConnectionEventHandler(NetworkManager networkManager, ConnectionEventData connectionEventData)
+        {
+            if (connectionEventData.EventType == ConnectionEvent.ClientDisconnected)
+            {
+                Debug.Log("client disconnected");
+                InitStartUp();
             }
         }
     }
