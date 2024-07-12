@@ -1,3 +1,4 @@
+using _GameData.Scripts.UI;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -7,7 +8,6 @@ namespace _GameData.Scripts.Core
     public class SceneLoader : NetworkBehaviour
     {
         private Scene _currentGameScene;
-        private NetworkManager _networkManager;
 
         private const string MainMenuSceneName = "MainMenu";
         private const string GameplaySceneName = "Gameplay";
@@ -19,7 +19,6 @@ namespace _GameData.Scripts.Core
         public virtual void Awake()
         {
             InitSingleton();
-            GetReferences();
         }
 
         private void Start()
@@ -31,14 +30,16 @@ namespace _GameData.Scripts.Core
         {
             base.OnNetworkSpawn();
 
-            _networkManager.OnServerStarted += InitNetworkSession;
-            _networkManager.OnClientStarted += InitNetworkSession;
+            NetworkManager.Singleton.OnServerStarted += InitNetworkSession;
+            NetworkManager.Singleton.OnClientStarted += InitNetworkSession;
+            
+            LoadingCanvas.Instance.Hide();
         }
 
         public override void OnNetworkDespawn()
         {
-            _networkManager.OnServerStarted -= InitNetworkSession;
-            _networkManager.OnServerStarted -= InitNetworkSession;
+            NetworkManager.Singleton.OnServerStarted -= InitNetworkSession;
+            NetworkManager.Singleton.OnServerStarted -= InitNetworkSession;
             
             base.OnNetworkDespawn();
         }
@@ -56,11 +57,6 @@ namespace _GameData.Scripts.Core
             DontDestroyOnLoad(this);
         }
 
-        private void GetReferences()
-        {
-            _networkManager = NetworkManager.Singleton;
-        }
-
         private void InitStartUp()
         {
             LoadScene(MainMenuSceneName, false, LoadSceneMode.Single);
@@ -73,14 +69,16 @@ namespace _GameData.Scripts.Core
             LoadScene(GameplaySceneName, true, LoadSceneMode.Single);
             _isSessionInitialized = true;
             Debug.Log(IsHost ? "HOST" : "CLIENT");
+            
+            LoadingCanvas.Instance.Hide();
         }
 
         private void LoadScene(string sceneName, bool useNetworkSceneManager, LoadSceneMode loadSceneMode)
         {
             Debug.Log(sceneName + " load requested");
-            if (useNetworkSceneManager && _networkManager.IsServer)
+            if (useNetworkSceneManager && NetworkManager.Singleton.IsServer)
             {
-                _networkManager.SceneManager.LoadScene(sceneName, loadSceneMode);
+                NetworkManager.Singleton.SceneManager.LoadScene(sceneName, loadSceneMode);
             }
             else
             {

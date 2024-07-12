@@ -3813,50 +3813,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: -20, y: -20}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!1 &759243343
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 759243345}
-  - component: {fileID: 759243344}
-  m_Layer: 0
-  m_Name: LobbyManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &759243344
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 759243343}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9e62d4abbcab40e1ac5268dd8c140077, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!4 &759243345
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 759243343}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &765724089
 GameObject:
   m_ObjectHideFlags: 0
@@ -4237,7 +4193,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 0, y: 1400}
+  m_AnchoredPosition: {x: 0, y: 1800}
   m_SizeDelta: {x: 1500, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &799636579
@@ -9042,14 +8998,12 @@ MonoBehaviour:
     canvas: {fileID: 1907014456}
   - state: 2
     canvas: {fileID: 215487}
-  - state: 6
+  - state: 5
     canvas: {fileID: 785696550}
   - state: 3
     canvas: {fileID: 301984298}
   - state: 4
     canvas: {fileID: 78469603}
-  - state: 5
-    canvas: {fileID: 566428490}
   notificationCanvas: {fileID: 1457880822}
 --- !u!1 &2137292059
 GameObject:
@@ -9419,5 +9373,4 @@ SceneRoots:
   m_Roots:
   - {fileID: 836572139}
   - {fileID: 1975449919}
-  - {fileID: 759243345}
   - {fileID: 2129992829}

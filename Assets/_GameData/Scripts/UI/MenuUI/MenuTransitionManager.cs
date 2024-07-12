@@ -66,7 +66,6 @@ namespace _GameData.Scripts.UI.MenuUI
         CreateLobby,
         LobbyBrowser,
         Settings,
-        Loading,
         Lobby,
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using _GameData.Scripts.UI;
 using Unity.Netcode;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
@@ -211,6 +212,7 @@ namespace _GameData.Scripts.Core
 
         private void StartGame()
         {
+            LoadingCanvas.Instance.Init();
             Debug.Log("--- GAME STARTING ---");
             if (IsOwnerHost)
             {
