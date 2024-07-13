@@ -19,8 +19,6 @@ namespace _GameData.Scripts.Core
             _ballSpawner = FindObjectOfType<BallSpawner>();
             _countdownCanvas = FindObjectOfType<CountdownCanvas>();
             _scoreCanvas = FindObjectOfType<ScoreCanvas>();
-
-            _countdownCanvas.OnCountdownCompleted += OnCountdownCompletedHandler;
         }
         
         public override void OnNetworkSpawn()
@@ -34,17 +32,28 @@ namespace _GameData.Scripts.Core
             base.OnNetworkSpawn();
 
             GetReferences();
-            NetworkManager.OnClientConnectedCallback += OnClientConnectedCallbackHandler;
-            OnGameFailed += OnGameFailedHandler;
+            SubscribeEvents();
         }
         
         public override void OnNetworkDespawn()
         {
-            NetworkManager.OnClientConnectedCallback -= OnClientConnectedCallbackHandler;
-            _countdownCanvas.OnCountdownCompleted -= OnCountdownCompletedHandler;
-            OnGameFailed -= OnGameFailedHandler;
+            UnsubscribeEvents();
             
             base.OnNetworkDespawn();
+        }
+
+        private void SubscribeEvents()
+        {
+            NetworkManager.OnClientConnectedCallback += OnClientConnectedCallbackHandler;
+            _countdownCanvas.OnCountdownCompleted += OnCountdownCompletedHandler;
+            OnGameFailed += OnGameFailedHandler;
+        }
+
+        private void UnsubscribeEvents()
+        {
+            NetworkManager.OnClientConnectedCallback -= OnClientConnectedCallbackHandler;
+            if (_countdownCanvas) _countdownCanvas.OnCountdownCompleted -= OnCountdownCompletedHandler;
+            OnGameFailed -= OnGameFailedHandler;
         }
         
         private void OnClientConnectedCallbackHandler(ulong obj)
@@ -64,6 +73,11 @@ namespace _GameData.Scripts.Core
         {
             _scoreCanvas.UpdateScore(isHostFailed);
             _countdownCanvas.StartCountdown();
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeEvents();
         }
     }
 }

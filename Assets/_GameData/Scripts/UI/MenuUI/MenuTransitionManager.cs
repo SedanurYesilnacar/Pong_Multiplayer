@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using _GameData.Scripts.Core;
 using UnityEngine;
@@ -15,15 +16,21 @@ namespace _GameData.Scripts.UI.MenuUI
         
         private void Start()
         {
-            LoadInitialState();
+            StartCoroutine(LoadInitialState());
 
             LobbyManager.Instance.OnPlayerKicked += OnPlayerKickedHandler;
         }
 
-        private void LoadInitialState()
+        private IEnumerator LoadInitialState()
         {
-            if (LobbyManager.Instance.JoinedLobby != null) ChangeState(MenuStates.Lobby);
+            if (LobbyManager.Instance.JoinedLobby != null)
+            {
+                //yield return new WaitForSeconds(11f);
+                ChangeState(MenuStates.Lobby);
+            }
             else ChangeState(MenuStates.MainMenu);
+            
+            yield return null;
         }
 
         public void ChangeState(MenuStates targetState)

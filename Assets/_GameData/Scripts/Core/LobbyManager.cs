@@ -180,12 +180,12 @@ namespace _GameData.Scripts.Core
 
         private void ResetLobbyReadyCount()
         {
+            Player.Data[PlayerReadyKey].Value = "false";
             ReadyPlayerCount = 0;
         }
 
         private void OnDataAdded(Dictionary<string, ChangedOrRemovedLobbyValue<DataObject>> changedOrRemovedLobbyValues)
         {
-            Debug.Log("data added");
             if (changedOrRemovedLobbyValues.ContainsKey(LobbyStartKey))
             {
                 StartGame();
