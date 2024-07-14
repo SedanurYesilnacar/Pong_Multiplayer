@@ -1,3 +1,4 @@
+using System;
 using _GameData.Scripts.Core;
 using TMPro;
 using Unity.Services.Lobbies;
@@ -17,6 +18,26 @@ namespace _GameData.Scripts.UI.MenuUI
         private const string DefaultPlayerName = "Waiting...";
         private Player _currentPlayer;
 
+        private void OnEnable()
+        {
+            SubscribeEvents();
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeEvents();
+        }
+
+        private void SubscribeEvents()
+        {
+            kickButton.onClick.AddListener(KickClickHandler);
+        }
+
+        private void UnsubscribeEvents()
+        {
+            kickButton.onClick.RemoveAllListeners();
+        }
+
         public void ResetUser()
         {
             _currentPlayer = null;
@@ -25,8 +46,6 @@ namespace _GameData.Scripts.UI.MenuUI
             kickButton.gameObject.SetActive(false);
             readyIcon.SetActive(false);
             hostIcon.SetActive(false);
-            
-            kickButton.onClick.RemoveAllListeners();
         }
         
         public void ChangeUserType(bool isOwnerHost, bool isUserHost)
@@ -40,8 +59,6 @@ namespace _GameData.Scripts.UI.MenuUI
             _currentPlayer = player;
             playerNameText.text = player.Data[LobbyManager.Instance.PlayerNameKey].Value;
             readyIcon.SetActive(player.Data[LobbyManager.Instance.PlayerReadyKey].Value == "true");
-            
-            kickButton.onClick.AddListener(KickClickHandler);
         }
 
         private async void KickClickHandler()

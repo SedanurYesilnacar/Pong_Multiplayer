@@ -66,6 +66,7 @@ namespace _GameData.Scripts.Core
 
         private void InitNetworkSession()
         {
+            Debug.Log("IsSessionInitialized: " + _isSessionInitialized);
             if (_isSessionInitialized) return;
 
             LoadScene(GameplaySceneName, true, LoadSceneMode.Single);

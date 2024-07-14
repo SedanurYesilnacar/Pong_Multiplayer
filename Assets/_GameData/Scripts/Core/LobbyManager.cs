@@ -111,7 +111,6 @@ namespace _GameData.Scripts.Core
         private async void SubscribeLobbyEvents()
         {
             _lobbyEventCallbacks = new LobbyEventCallbacks();
-            _lobbyEventCallbacks.DataAdded += OnDataAdded;
             _lobbyEventCallbacks.LobbyChanged += OnLobbyChanged;
             _lobbyEventCallbacks.KickedFromLobby += OnKickedFromLobby;
             _lobbyEventCallbacks.PlayerDataChanged += OnPlayerDataChanged;
@@ -135,7 +134,6 @@ namespace _GameData.Scripts.Core
         {
             if (_lobbyEventCallbacks == null) return;
 
-            _lobbyEventCallbacks.DataAdded -= OnDataAdded;
             _lobbyEventCallbacks.LobbyChanged -= OnLobbyChanged;
             _lobbyEventCallbacks.KickedFromLobby -= OnKickedFromLobby;
             _lobbyEventCallbacks.PlayerDataChanged -= OnPlayerDataChanged;
@@ -178,18 +176,30 @@ namespace _GameData.Scripts.Core
             OnGameStartPermissionChanged?.Invoke();
         }
 
+        public async void SetGameStartData(bool isStarted)
+        {
+            UpdateLobbyOptions updateLobbyOptions = new UpdateLobbyOptions()
+            {
+                Data = new Dictionary<string, DataObject>()
+                {
+                    { LobbyStartKey, new DataObject(DataObject.VisibilityOptions.Member, isStarted ? "true" : "false") }
+                }
+            };
+            
+            try
+            {
+                await LobbyService.Instance.UpdateLobbyAsync(JoinedLobby.Id, updateLobbyOptions);
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.LogError(e);
+            }
+        }
+
         private void ResetLobbyReadyCount()
         {
             Player.Data[PlayerReadyKey].Value = "false";
             ReadyPlayerCount = 0;
-        }
-
-        private void OnDataAdded(Dictionary<string, ChangedOrRemovedLobbyValue<DataObject>> changedOrRemovedLobbyValues)
-        {
-            if (changedOrRemovedLobbyValues.ContainsKey(LobbyStartKey))
-            {
-                StartGame();
-            }
         }
 
         private void OnLobbyChanged(ILobbyChanges lobbyChanges)
@@ -208,6 +218,14 @@ namespace _GameData.Scripts.Core
                 ResetLobbyReadyCount();
                 OnJoinedPlayersChanged?.Invoke();
             }
+            
+            if (lobbyChanges.Data.Value != null && lobbyChanges.Data.Value.TryGetValue(LobbyStartKey, out var gameStartData))
+            {
+                if (gameStartData.Value.Value == "true")
+                {
+                    StartGame();
+                }
+            }
         }
 
         private void StartGame()
@@ -216,16 +234,20 @@ namespace _GameData.Scripts.Core
             Debug.Log("--- GAME STARTING ---");
             if (IsOwnerHost)
             {
+                SetGameStartData(false);
                 NetworkManager.Singleton.StartHost();
             }
             else
             {
                 NetworkManager.Singleton.StartClient();
             }
+            
         }
 
         private void OnKickedFromLobby()
         {
+            if (IsOwnerHost) return;
+            
             JoinedLobby = null;
             OnPlayerKicked?.Invoke();
         }

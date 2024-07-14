@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Generic;
 using _GameData.Scripts.Core;
 using TMPro;
-using Unity.Netcode;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
@@ -49,6 +47,7 @@ namespace _GameData.Scripts.UI.MenuUI
             leaveButton.onClick.RemoveAllListeners();
             readyButton.onClick.RemoveAllListeners();
             startGameButton.onClick.RemoveAllListeners();
+            if (_lobbyManager == null) return;
             _lobbyManager.OnLobbyPlayerDataChanged -= OnLobbyPlayerDataChangedHandler;
             _lobbyManager.OnJoinedPlayersChanged -= OnJoinedPlayersChangedHandler;
             _lobbyManager.OnPlayerKicked -= OnPlayerKickedHandler;
@@ -152,24 +151,9 @@ namespace _GameData.Scripts.UI.MenuUI
             ChangeReadyStatus(!currentReadyStatus);
         }
 
-        private async void StartGameClickHandler()
+        private void StartGameClickHandler()
         {
-            UpdateLobbyOptions updateLobbyOptions = new UpdateLobbyOptions()
-            {
-                Data = new Dictionary<string, DataObject>()
-                {
-                    { _lobbyManager.LobbyStartKey, new DataObject(DataObject.VisibilityOptions.Member, "true") }
-                }
-            };
-            
-            try
-            {
-                await LobbyService.Instance.UpdateLobbyAsync(_lobbyManager.JoinedLobby.Id, updateLobbyOptions);
-            }
-            catch (LobbyServiceException e)
-            {
-                Debug.LogError(e);
-            }
+            _lobbyManager.SetGameStartData(true);
         }
 
         private void OnLobbyPlayerDataChangedHandler()
@@ -191,7 +175,6 @@ namespace _GameData.Scripts.UI.MenuUI
 
         private void OnGameStartPermissionChangedHandler()
         {
-            Debug.Log("IsGameStartAllowed " + _lobbyManager.IsGameStartAllowed);
             startGameButton.interactable = _lobbyManager.IsGameStartAllowed;
         }
 
