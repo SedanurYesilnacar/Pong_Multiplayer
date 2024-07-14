@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using _GameData.Scripts.UI;
 using _GameData.Scripts.UI.MenuUI;
 using Unity.Netcode;
@@ -45,7 +44,6 @@ namespace _GameData.Scripts.Core
         public string PlayerNameKey { get; private set; } = "PlayerName";
         public string PlayerReadyKey { get; private set; } = "IsPlayerReady";
         public string LobbyHostName { get; private set; } = "HostName";
-        public int ReadyPlayerCount { get; private set; }
 
         private bool IsGameStartAllowed
         {
@@ -86,7 +84,22 @@ namespace _GameData.Scripts.Core
 
             _heartbeatTimer = new WaitForSeconds(HeartbeatTriggerInterval);
         }
-        
+
+        private void SubscribeEvents()
+        {
+            AuthenticationService.Instance.SignedIn += SignedInHandler;
+        }
+
+        private void UnsubscribeEvents()
+        {
+            AuthenticationService.Instance.SignedIn -= SignedInHandler;
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeEvents();
+        }
+
         private void InitSingleton()
         {
             if (Instance != null && Instance != this)
@@ -103,8 +116,7 @@ namespace _GameData.Scripts.Core
         private async void Start()
         {
             await UnityServices.InitializeAsync();
-
-            AuthenticationService.Instance.SignedIn += SignedInHandler;
+            SubscribeEvents();
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
             
             CreatePlayer();
@@ -141,7 +153,7 @@ namespace _GameData.Scripts.Core
                 Order = new List<QueryOrder>() { new QueryOrder(false, QueryOrder.FieldOptions.Created) }
             };
         }
-        
+
         public bool IsPlayerHost(string playerId)
         {
             return JoinedLobby.HostId == playerId;
@@ -278,7 +290,7 @@ namespace _GameData.Scripts.Core
                 Debug.LogError(e);
             }
         }
-        
+
         private void UpdateGameStartPermission()
         {
             if (!IsOwnerHost || JoinedLobby.Players.Count < JoinedLobby.MaxPlayers)
@@ -302,7 +314,7 @@ namespace _GameData.Scripts.Core
             {
                 Data = new Dictionary<string, DataObject>()
                 {
-                    { LobbyStartKey, new DataObject(DataObject.VisibilityOptions.Member, isStarted ? "true" : "false") }
+                    { LobbyStartKey, new DataObject(DataObject.VisibilityOptions.Member, isStarted.ToString().ToLower()) }
                 }
             };
             
@@ -316,19 +328,24 @@ namespace _GameData.Scripts.Core
             }
         }
 
+        private void ResetLobbyForGameStart()
+        {
+            for (int i = 0; i < JoinedLobby.Players.Count; i++)
+            {
+                JoinedLobby.Players[i].Data[PlayerReadyKey].Value = "false";
+            }
+            
+            if (IsOwnerHost) SetGameStartData(false);
+        }
+
         private void ResetLobbyReadyCount()
         {
             Player.Data[PlayerReadyKey].Value = "false";
-            ReadyPlayerCount = 0;
         }
 
         private void OnLobbyChanged(ILobbyChanges lobbyChanges)
         {
-            if (lobbyChanges.LobbyDeleted)
-            {
-                
-            }
-            else
+            if (!lobbyChanges.LobbyDeleted)
             {
                 lobbyChanges.ApplyToLobby(JoinedLobby);
             }
@@ -338,30 +355,27 @@ namespace _GameData.Scripts.Core
                 ResetLobbyReadyCount();
                 OnJoinedPlayersChanged?.Invoke();
             }
-            
-            if (lobbyChanges.Data.Value != null && lobbyChanges.Data.Value.TryGetValue(LobbyStartKey, out var gameStartData))
-            {
-                if (gameStartData.Value.Value == "true")
-                {
-                    StartGame();
-                }
-            }
+
+            TryStartGame();
         }
 
-        private void StartGame()
+        private void TryStartGame()
         {
-            LoadingCanvas.Instance.Init();
+            if (JoinedLobby.Data == null) return;
+            if (!JoinedLobby.Data.ContainsKey(LobbyStartKey)) return;
+            if (bool.Parse(JoinedLobby.Data[LobbyStartKey].Value) == false) return;
+
             Debug.Log("--- GAME STARTING ---");
+            LoadingCanvas.Instance.Init();
+            ResetLobbyForGameStart();
             if (IsOwnerHost)
             {
-                SetGameStartData(false);
                 NetworkManager.Singleton.StartHost();
             }
             else
             {
                 NetworkManager.Singleton.StartClient();
             }
-            
         }
 
         private void OnKickedFromLobby()
