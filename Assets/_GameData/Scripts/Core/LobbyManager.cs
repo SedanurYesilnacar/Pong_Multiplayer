@@ -206,6 +206,22 @@ namespace _GameData.Scripts.Core
             }
         }
 
+        public async void QuickPlay()
+        {
+            QuickJoinLobbyOptions quickJoinLobbyOptions = new QuickJoinLobbyOptions() { Player = Player };
+
+            try
+            {
+                JoinedLobby = await LobbyService.Instance.QuickJoinLobbyAsync(quickJoinLobbyOptions);
+                OnMenuStateChangeRequested?.Invoke(MenuStates.Lobby);
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.LogError(e.Message);
+                OnNotificationPopupRequested?.Invoke(e.Message);
+            }
+        }
+
         public async void CreateLobby(LobbyCreateOptions lobbyCreateOptions)
         {
             if (_isLobbyCreating) return;
