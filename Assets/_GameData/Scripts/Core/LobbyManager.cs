@@ -1,7 +1,9 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using _GameData.Scripts.UI;
+using _GameData.Scripts.UI.MenuUI;
 using Unity.Netcode;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
@@ -42,6 +44,7 @@ namespace _GameData.Scripts.Core
         public string PlayerNameKey { get; private set; } = "PlayerName";
         public string PlayerReadyKey { get; private set; } = "IsPlayerReady";
         public string LobbyStartKey { get; private set; } = "IsGameStarted";
+        public string LobbyHostName { get; private set; } = "HostName";
         public int ReadyPlayerCount { get; private set; } = 0;
         public bool IsGameStartAllowed { get; private set; } = false;
         public string PlayerId { get; private set; }
@@ -49,17 +52,27 @@ namespace _GameData.Scripts.Core
         
         private int _readyPlayerCount;
         private const string PlayerBaseName = "Player";
+
+        private const float HeartbeatTriggerInterval = 25f; // LobbyActiveLifespan is 30s in dashboard
+        private WaitForSeconds _heartbeatTimer;
+        private Coroutine _heartbeatRoutine;
+
+        private bool _isLobbyCreating;
         
         private LobbyEventCallbacks _lobbyEventCallbacks;
         public event Action OnPlayerKicked;
         public event Action OnLobbyPlayerDataChanged;
         public event Action OnJoinedPlayersChanged;
         public event Action OnGameStartPermissionChanged;
-        public event Action<List<Lobby>> OnLobbyListUpdated;
+        public event Action<List<Lobby>> OnLobbyListUpdated; // CurrentLobbyList
+        public Action<MenuStates> OnMenuStateChangeRequested; // RequestedMenuState
+        public event Action<string> OnNotificationPopupRequested; // NotificationMessage
 
         private void Awake()
         {
             InitSingleton();
+
+            _heartbeatTimer = new WaitForSeconds(HeartbeatTriggerInterval);
         }
         
         private void InitSingleton()
@@ -167,6 +180,43 @@ namespace _GameData.Scripts.Core
             {
                 Debug.LogError(e.Message);
             }
+        }
+
+        public async void CreateLobby(LobbyCreateOptions lobbyCreateOptions)
+        {
+            if (_isLobbyCreating) return;
+            _isLobbyCreating = true;
+            
+            CreateLobbyOptions lobbyOptions = new CreateLobbyOptions
+            {
+                IsPrivate = lobbyCreateOptions.LobbyAccessibilityType == LobbyAccessibilityType.Private,
+                Player = Player
+            };
+            
+            try
+            {
+                JoinedLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyCreateOptions.LobbyName, 2, lobbyOptions);
+                if (_heartbeatRoutine == null) _heartbeatRoutine = StartCoroutine(HeartbeatRoutine());
+                OnMenuStateChangeRequested?.Invoke(MenuStates.Lobby);
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.LogError(e.Message);
+                OnNotificationPopupRequested?.Invoke(e.Message);
+            }
+
+            _isLobbyCreating = false;
+        }
+
+        private IEnumerator HeartbeatRoutine()
+        {
+            while (JoinedLobby != null)
+            {
+                yield return _heartbeatTimer;
+                yield return LobbyService.Instance.SendHeartbeatPingAsync(JoinedLobby.Id);
+            }
+
+            _heartbeatRoutine = null;
         }
 
         private async void CreateRelay()

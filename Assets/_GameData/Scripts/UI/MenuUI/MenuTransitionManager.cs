@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using _GameData.Scripts.Core;
 using UnityEngine;
@@ -13,24 +12,39 @@ namespace _GameData.Scripts.UI.MenuUI
 
         private Canvas _currentCanvas;
         private const string KickMessage = "You've been kicked from the lobby";
-        
-        private void Start()
-        {
-            StartCoroutine(LoadInitialState());
 
+        private void OnEnable()
+        {
+            SubscribeEvents();
+        }
+        
+        private void OnDisable()
+        {
+            UnsubscribeEvents();
+        }
+
+        private void SubscribeEvents()
+        {
+            LobbyManager.Instance.OnMenuStateChangeRequested += OnMenuStateChangeRequestedHandler;
+            LobbyManager.Instance.OnNotificationPopupRequested += OnNotificationPopupRequestedHandler;
             LobbyManager.Instance.OnPlayerKicked += OnPlayerKickedHandler;
         }
 
-        private IEnumerator LoadInitialState()
+        private void UnsubscribeEvents()
         {
-            if (LobbyManager.Instance.JoinedLobby != null)
-            {
-                //yield return new WaitForSeconds(11f);
-                ChangeState(MenuStates.Lobby);
-            }
-            else ChangeState(MenuStates.MainMenu);
-            
-            yield return null;
+            LobbyManager.Instance.OnMenuStateChangeRequested -= OnMenuStateChangeRequestedHandler;
+            LobbyManager.Instance.OnNotificationPopupRequested -= OnNotificationPopupRequestedHandler;
+            LobbyManager.Instance.OnPlayerKicked -= OnPlayerKickedHandler;
+        }
+
+        private void Start()
+        {
+            LoadInitialState();
+        }
+
+        private void LoadInitialState()
+        {
+            ChangeState(LobbyManager.Instance.JoinedLobby != null ? MenuStates.Lobby : MenuStates.MainMenu);
         }
 
         public void ChangeState(MenuStates targetState)
@@ -53,15 +67,20 @@ namespace _GameData.Scripts.UI.MenuUI
             notificationCanvas.Show(message);
         }
 
+        private void OnMenuStateChangeRequestedHandler(MenuStates requestedMenuState)
+        {
+            ChangeState(requestedMenuState);
+        }
+
+        private void OnNotificationPopupRequestedHandler(string notificationMessage)
+        {
+            ShowNotification(notificationMessage);
+        }
+
         private void OnPlayerKickedHandler()
         {
             ShowNotification(KickMessage);
             ChangeState(MenuStates.MainMenu);
-        }
-
-        private void OnDisable()
-        {
-            LobbyManager.Instance.OnPlayerKicked -= OnPlayerKickedHandler;
         }
     }
 
