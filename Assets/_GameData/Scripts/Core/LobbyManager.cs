@@ -222,6 +222,22 @@ namespace _GameData.Scripts.Core
             }
         }
 
+        public async void JoinLobby(Lobby lobbyToJoin)
+        {
+            JoinLobbyByIdOptions joinLobbyByIdOptions = new JoinLobbyByIdOptions() { Player = Player };
+            
+            try
+            {
+                JoinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyToJoin.Id, joinLobbyByIdOptions);
+                OnMenuStateChangeRequested?.Invoke(MenuStates.Lobby);
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.LogError(e.Message);
+                OnNotificationPopupRequested?.Invoke(e.Message);
+            }
+        }
+
         public async void CreateLobby(LobbyCreateOptions lobbyCreateOptions)
         {
             if (_isLobbyCreating) return;

@@ -1,9 +1,6 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using _GameData.Scripts.Core;
-using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using UnityEngine.UI;
@@ -12,7 +9,6 @@ namespace _GameData.Scripts.UI.MenuUI
 {
     public class LobbyBrowserCanvas : MonoBehaviour, IInitializableCanvas
     {
-        [SerializeField] private MenuTransitionManager menuTransitionManager;
         [SerializeField] private Transform lobbyContainer;
         [SerializeField] private GameObject lobbyPrefab;
         [SerializeField] private Button backButton;
@@ -69,7 +65,7 @@ namespace _GameData.Scripts.UI.MenuUI
                 var currentLobby = lobbies[i];
                 var spawnedLobby = Instantiate(lobbyPrefab, lobbyContainer);
                 var spawnedLobbyEntryController = spawnedLobby.GetComponent<LobbyEntryController>();
-                spawnedLobbyEntryController.Init(menuTransitionManager, currentLobby);
+                spawnedLobbyEntryController.Init(currentLobby);
                 _displayedLobbies.Add(spawnedLobbyEntryController);
             }
         }
@@ -93,7 +89,7 @@ namespace _GameData.Scripts.UI.MenuUI
 
         private void BackClickHandler()
         {
-            menuTransitionManager.ChangeState(MenuStates.MainMenu);
+            LobbyManager.Instance.OnMenuStateChangeRequested?.Invoke(MenuStates.MainMenu);
         }
 
         private void RefreshClickHandler()
