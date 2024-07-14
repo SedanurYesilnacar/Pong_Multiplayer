@@ -94,6 +94,8 @@ namespace _GameData.Scripts.Core
             if (connectionEventData.EventType == ConnectionEvent.ClientDisconnected)
             {
                 Debug.Log("client disconnected");
+                networkManager.Shutdown();
+                _isSessionInitialized = false;
                 InitStartUp();
             }
         }
