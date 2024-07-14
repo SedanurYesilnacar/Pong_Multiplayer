@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Services.Lobbies;
+using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -35,12 +36,14 @@ namespace _GameData.Scripts.UI.MenuUI
 
         private async void DisplayLobbies()
         {
-            // QueryLobbiesOptions queryOption = new QueryLobbiesOptions()
-            // {
-            //     Count = 25,
-            //     Filters = new List<QueryFilter>() { new QueryFilter(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT) },
-            //     Order = new List<QueryOrder>() { new QueryOrder(false, QueryOrder.FieldOptions.Created) }
-            // };
+            QueryLobbiesOptions queryOption = new QueryLobbiesOptions()
+            {
+                Count = 25,
+                Filters = new List<QueryFilter>() { new QueryFilter(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT) },
+                Order = new List<QueryOrder>() { new QueryOrder(false, QueryOrder.FieldOptions.Created) }
+            };
+            
+            
             refreshButton.interactable = false;
             StartCoroutine(RefreshRoutine());
             
@@ -48,7 +51,7 @@ namespace _GameData.Scripts.UI.MenuUI
 
             try
             {
-                var queryResponse = await LobbyService.Instance.QueryLobbiesAsync();
+                var queryResponse = await LobbyService.Instance.QueryLobbiesAsync(queryOption);
                 var uniqueQueryResponseResults = queryResponse.Results.Distinct().ToList();
                 
                 for (int i = 0; i < uniqueQueryResponseResults.Count; i++)
