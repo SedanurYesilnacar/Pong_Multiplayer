@@ -1,6 +1,8 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using _GameData.Scripts.Core;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
@@ -21,52 +23,54 @@ namespace _GameData.Scripts.UI.MenuUI
         private const float RefreshRateTime = 1.5f;
         private WaitForSeconds _refreshDelay;
 
-        private void Start()
+        private void Awake()
         {
             _refreshDelay = new WaitForSeconds(RefreshRateTime);
-            
+        }
+
+        private void OnEnable()
+        {
+            SubscribeEvents();
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeEvents();
+        }
+
+        private void SubscribeEvents()
+        {
             backButton.onClick.AddListener(BackClickHandler);
             refreshButton.onClick.AddListener(RefreshClickHandler);
+            LobbyManager.Instance.OnLobbyListUpdated += OnLobbyListUpdatedHandler;
+        }
+
+        private void UnsubscribeEvents()
+        {
+            backButton.onClick.RemoveAllListeners();
+            refreshButton.onClick.RemoveAllListeners();
+            if (LobbyManager.Instance == null) return;
+            LobbyManager.Instance.OnLobbyListUpdated -= OnLobbyListUpdatedHandler;
         }
 
         public void Init()
         {
-            DisplayLobbies();
+            RefreshClickHandler();
         }
 
-        private async void DisplayLobbies()
+        private void DisplayLobbies(List<Lobby> lobbies)
         {
-            QueryLobbiesOptions queryOption = new QueryLobbiesOptions()
-            {
-                Count = 25,
-                Filters = new List<QueryFilter>() { new QueryFilter(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT) },
-                Order = new List<QueryOrder>() { new QueryOrder(false, QueryOrder.FieldOptions.Created) }
-            };
-            
-            
-            refreshButton.interactable = false;
             StartCoroutine(RefreshRoutine());
             
             ClearLobbies();
-
-            try
+            
+            for (int i = 0; i < lobbies.Count; i++)
             {
-                var queryResponse = await LobbyService.Instance.QueryLobbiesAsync(queryOption);
-                var uniqueQueryResponseResults = queryResponse.Results.Distinct().ToList();
-                
-                for (int i = 0; i < uniqueQueryResponseResults.Count; i++)
-                {
-                    var currentLobby = uniqueQueryResponseResults[i];
-                    var spawnedLobby = Instantiate(lobbyPrefab, lobbyContainer);
-                    var spawnedLobbyEntryController = spawnedLobby.GetComponent<LobbyEntryController>();
-                    spawnedLobbyEntryController.Init(menuTransitionManager, currentLobby);
-                    _displayedLobbies.Add(spawnedLobbyEntryController);
-                }
-            }
-            catch (LobbyServiceException e)
-            {
-                Debug.LogError(e.Message);
-                menuTransitionManager.ShowNotification(e.Message);
+                var currentLobby = lobbies[i];
+                var spawnedLobby = Instantiate(lobbyPrefab, lobbyContainer);
+                var spawnedLobbyEntryController = spawnedLobby.GetComponent<LobbyEntryController>();
+                spawnedLobbyEntryController.Init(menuTransitionManager, currentLobby);
+                _displayedLobbies.Add(spawnedLobbyEntryController);
             }
         }
 
@@ -82,8 +86,8 @@ namespace _GameData.Scripts.UI.MenuUI
 
         private IEnumerator RefreshRoutine()
         {
+            refreshButton.interactable = false;
             yield return _refreshDelay;
-
             refreshButton.interactable = true;
         }
 
@@ -94,7 +98,12 @@ namespace _GameData.Scripts.UI.MenuUI
 
         private void RefreshClickHandler()
         {
-            DisplayLobbies();
+            LobbyManager.Instance.QueryLobbies();
+        }
+
+        private void OnLobbyListUpdatedHandler(List<Lobby> lobbies)
+        {
+            DisplayLobbies(lobbies);
         }
     }
 }

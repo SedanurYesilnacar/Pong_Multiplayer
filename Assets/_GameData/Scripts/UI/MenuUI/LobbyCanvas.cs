@@ -116,7 +116,6 @@ namespace _GameData.Scripts.UI.MenuUI
                     Data = _lobbyManager.Player.Data
                 };
                
-                Debug.Log("-----" + updatePlayerOptions.Data[_lobbyManager.PlayerReadyKey].Value);
                 await Lobbies.Instance.UpdatePlayerAsync(_lobbyManager.JoinedLobby.Id, _lobbyManager.PlayerId, updatePlayerOptions);
             }
             catch (LobbyServiceException e)

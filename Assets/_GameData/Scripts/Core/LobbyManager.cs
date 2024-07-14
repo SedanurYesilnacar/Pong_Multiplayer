@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using _GameData.Scripts.UI;
 using Unity.Netcode;
 using Unity.Services.Authentication;
@@ -37,6 +38,7 @@ namespace _GameData.Scripts.Core
         }
 
         public Player Player { get; private set; }
+        private QueryLobbiesOptions QueryLobbiesOptions { get; set; }
         public string PlayerNameKey { get; private set; } = "PlayerName";
         public string PlayerReadyKey { get; private set; } = "IsPlayerReady";
         public string LobbyStartKey { get; private set; } = "IsGameStarted";
@@ -53,6 +55,7 @@ namespace _GameData.Scripts.Core
         public event Action OnLobbyPlayerDataChanged;
         public event Action OnJoinedPlayersChanged;
         public event Action OnGameStartPermissionChanged;
+        public event Action<List<Lobby>> OnLobbyListUpdated;
 
         private void Awake()
         {
@@ -80,6 +83,7 @@ namespace _GameData.Scripts.Core
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
             
             CreatePlayer();
+            CreateQueryLobbiesOptions();
             
             (LobbyService.Instance as ILobbyServiceSDKConfiguration).EnableLocalPlayerLobbyEvents(true);
         }
@@ -100,6 +104,16 @@ namespace _GameData.Scripts.Core
                     { PlayerNameKey, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, playerName) },
                     { PlayerReadyKey, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, "false") }
                 }
+            };
+        }
+
+        private void CreateQueryLobbiesOptions()
+        {
+            QueryLobbiesOptions = new QueryLobbiesOptions()
+            {
+                Count = 25,
+                Filters = new List<QueryFilter>() { new QueryFilter(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT) },
+                Order = new List<QueryOrder>() { new QueryOrder(false, QueryOrder.FieldOptions.Created) }
             };
         }
         
@@ -138,6 +152,21 @@ namespace _GameData.Scripts.Core
             _lobbyEventCallbacks.KickedFromLobby -= OnKickedFromLobby;
             _lobbyEventCallbacks.PlayerDataChanged -= OnPlayerDataChanged;
             Debug.Log("unsubscribed");
+        }
+
+        public async void QueryLobbies()
+        {
+            try
+            {
+                var queryResponse = await LobbyService.Instance.QueryLobbiesAsync(QueryLobbiesOptions);
+                var uniqueQueryResponseResults = queryResponse.Results.Distinct().ToList();
+          
+                OnLobbyListUpdated?.Invoke(uniqueQueryResponseResults);
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.LogError(e.Message);
+            }
         }
 
         private async void CreateRelay()
