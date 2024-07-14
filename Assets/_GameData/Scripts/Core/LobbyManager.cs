@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using _GameData.Scripts.UI;
 using _GameData.Scripts.UI.MenuUI;
 using Unity.Netcode;
@@ -43,27 +44,38 @@ namespace _GameData.Scripts.Core
         private QueryLobbiesOptions QueryLobbiesOptions { get; set; }
         public string PlayerNameKey { get; private set; } = "PlayerName";
         public string PlayerReadyKey { get; private set; } = "IsPlayerReady";
-        public string LobbyStartKey { get; private set; } = "IsGameStarted";
         public string LobbyHostName { get; private set; } = "HostName";
-        public int ReadyPlayerCount { get; private set; } = 0;
-        public bool IsGameStartAllowed { get; private set; } = false;
-        public string PlayerId { get; private set; }
+        public int ReadyPlayerCount { get; private set; }
+
+        private bool IsGameStartAllowed
+        {
+            set
+            {
+                if (_isGameStartAllowed != value) OnGameStartPermissionChanged?.Invoke(value);
+                _isGameStartAllowed = value;
+            }
+        }
+
+        private string PlayerId { get; set; }
         public bool IsOwnerHost => IsPlayerHost(PlayerId);
         
-        private int _readyPlayerCount;
         private const string PlayerBaseName = "Player";
+        private const string LobbyStartKey = "IsGameStarted";
 
         private const float HeartbeatTriggerInterval = 25f; // LobbyActiveLifespan is 30s in dashboard
         private WaitForSeconds _heartbeatTimer;
         private Coroutine _heartbeatRoutine;
 
+        private int _readyPlayerCount;
+        private bool _isGameStartAllowed;
         private bool _isLobbyCreating;
+        private bool _isPlayerUpdating;
         
         private LobbyEventCallbacks _lobbyEventCallbacks;
         public event Action OnPlayerKicked;
         public event Action OnLobbyPlayerDataChanged;
         public event Action OnJoinedPlayersChanged;
-        public event Action OnGameStartPermissionChanged;
+        public event Action<bool> OnGameStartPermissionChanged; // IsGameStartAllowed
         public event Action<List<Lobby>> OnLobbyListUpdated; // CurrentLobbyList
         public Action<MenuStates> OnMenuStateChangeRequested; // RequestedMenuState
         public event Action<string> OnNotificationPopupRequested; // NotificationMessage
@@ -219,6 +231,42 @@ namespace _GameData.Scripts.Core
             _heartbeatRoutine = null;
         }
 
+        public async void SetPlayerReady(bool isReady)
+        {
+            if (_isPlayerUpdating) return;
+            _isPlayerUpdating = true;
+            
+            try
+            {
+                Player.Data[PlayerReadyKey] = new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, isReady.ToString().ToLower());
+                UpdatePlayerOptions updatePlayerOptions = new UpdatePlayerOptions() { Data = Player.Data };
+               
+                await Lobbies.Instance.UpdatePlayerAsync(JoinedLobby.Id, PlayerId, updatePlayerOptions);
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.LogError(e.Message);
+            }
+
+            _isPlayerUpdating = false;
+        }
+
+        public async void RemovePlayerFromLobby()
+        {
+            try
+            {
+                await LobbyService.Instance.RemovePlayerAsync(JoinedLobby.Id, PlayerId);
+                
+                JoinedLobby = null;
+                OnMenuStateChangeRequested?.Invoke(MenuStates.MainMenu);
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.LogError(e.Message);
+                OnNotificationPopupRequested?.Invoke(e.Message);
+            }
+        }
+
         private async void CreateRelay()
         {
             try
@@ -231,28 +279,21 @@ namespace _GameData.Scripts.Core
             }
         }
         
-        private void CheckGameStartAllowed()
+        private void UpdateGameStartPermission()
         {
             if (!IsOwnerHost || JoinedLobby.Players.Count < JoinedLobby.MaxPlayers)
             {
                 IsGameStartAllowed = false;
-                OnGameStartPermissionChanged?.Invoke();
                 return;
             }
 
-            var playersInLobby = JoinedLobby.Players;
-            for (int i = 0; i < playersInLobby.Count; i++)
+            if (JoinedLobby.Players.Any(player => !bool.Parse(player.Data[PlayerReadyKey].Value)))
             {
-                if (playersInLobby[i].Data[PlayerReadyKey].Value == "false")
-                {
-                    IsGameStartAllowed = false;
-                    OnGameStartPermissionChanged?.Invoke();
-                    return;
-                }
+                IsGameStartAllowed = false;
+                return;
             }
 
             IsGameStartAllowed = true;
-            OnGameStartPermissionChanged?.Invoke();
         }
 
         public async void SetGameStartData(bool isStarted)
@@ -333,10 +374,10 @@ namespace _GameData.Scripts.Core
 
         private void OnPlayerDataChanged(Dictionary<int, Dictionary<string, ChangedOrRemovedLobbyValue<PlayerDataObject>>> obj)
         {
-            Debug.Log("player data changed");
+            Debug.Log("OnPlayerDataChanged");
             OnLobbyPlayerDataChanged?.Invoke();
             
-            CheckGameStartAllowed();
+            UpdateGameStartPermission();
         }
     }
 }

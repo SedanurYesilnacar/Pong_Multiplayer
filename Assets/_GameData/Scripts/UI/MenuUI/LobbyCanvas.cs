@@ -1,7 +1,5 @@
-using System;
 using _GameData.Scripts.Core;
 using TMPro;
-using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,7 +8,6 @@ namespace _GameData.Scripts.UI.MenuUI
 {
     public class LobbyCanvas : MonoBehaviour, IInitializableCanvas
     {
-        [SerializeField] private MenuTransitionManager menuTransitionManager;
         [SerializeField] private TMP_Text lobbyNameText;
         [SerializeField] private TMP_Text lobbyCodeText;
         [SerializeField] private Button startGameButton;
@@ -22,24 +19,31 @@ namespace _GameData.Scripts.UI.MenuUI
         private Lobby _currentLobby;
         private int _readyUserCount;
 
+        private void OnEnable()
+        {
+            SubscribeEvents();
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeEvents();
+        }
+
         public void Init()
         {
-            if (!_lobbyManager) _lobbyManager = LobbyManager.Instance;
             SetupLobby();
-            
-            SubscribeEvents();
         }
 
         private void SubscribeEvents()
         {
+            if (!_lobbyManager) _lobbyManager = LobbyManager.Instance;
+            
             leaveButton.onClick.AddListener(LeaveClickHandler);
             readyButton.onClick.AddListener(ReadyClickHandler);
             startGameButton.onClick.AddListener(StartGameClickHandler);
             _lobbyManager.OnLobbyPlayerDataChanged += OnLobbyPlayerDataChangedHandler;
             _lobbyManager.OnJoinedPlayersChanged += OnJoinedPlayersChangedHandler;
-            _lobbyManager.OnPlayerKicked += OnPlayerKickedHandler;
             _lobbyManager.OnGameStartPermissionChanged += OnGameStartPermissionChangedHandler;
-            Debug.Log("OnLobbyPlayersUpdateRequested subscribed");
         }
 
         private void UnsubscribeEvents()
@@ -50,37 +54,24 @@ namespace _GameData.Scripts.UI.MenuUI
             if (_lobbyManager == null) return;
             _lobbyManager.OnLobbyPlayerDataChanged -= OnLobbyPlayerDataChangedHandler;
             _lobbyManager.OnJoinedPlayersChanged -= OnJoinedPlayersChangedHandler;
-            _lobbyManager.OnPlayerKicked -= OnPlayerKickedHandler;
             _lobbyManager.OnGameStartPermissionChanged -= OnGameStartPermissionChangedHandler;
-            Debug.Log("OnLobbyPlayersUpdateRequested unsubscribed");
         }
         
         private void SetupLobby()
         {
             _currentLobby = _lobbyManager.JoinedLobby;
-            if (_currentLobby == null)
-            {
-                Debug.LogError("Lobby null");
-                _currentLobby = null;
-                menuTransitionManager.ChangeState(MenuStates.MainMenu);
-                return;
-            }
-
-            lobbyNameText.text = _currentLobby.Name;
-            if (!_currentLobby.IsPrivate) lobbyCodeText.gameObject.SetActive(false);
-            else lobbyCodeText.text = "Lobby Code: " + _currentLobby.LobbyCode;
-            startGameButton.interactable = false;
-            UpdateLobby();
             
-            if (lobbyUserControllers.Length < _currentLobby.MaxPlayers)
+            if (_currentLobby == null) HandleLobbySetupFail();
+            else
             {
-                Debug.LogError("Lobby user count can not be less than " + _currentLobby.MaxPlayers);
-                _currentLobby = null;
-                menuTransitionManager.ChangeState(MenuStates.MainMenu);
-                return;
-            }
+                lobbyNameText.text = _currentLobby.Name;
+                if (!_currentLobby.IsPrivate) lobbyCodeText.gameObject.SetActive(false);
+                else lobbyCodeText.text = "Lobby Code: " + _currentLobby.LobbyCode;
+                startGameButton.interactable = false;
             
-            UpdateLobbyPlayers();
+                UpdateLobby();
+                UpdateLobbyPlayers();
+            }
         }
 
         private void UpdateLobby()
@@ -102,51 +93,26 @@ namespace _GameData.Scripts.UI.MenuUI
             }
         }
 
-        private async void ChangeReadyStatus(bool isReady)
+        private void HandleLobbySetupFail()
         {
-            readyButton.interactable = false;
-            
-            try
-            {
-                _lobbyManager.Player.Data[_lobbyManager.PlayerReadyKey] = new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, isReady ? "true" : "false");
-                UpdatePlayerOptions updatePlayerOptions = new UpdatePlayerOptions()
-                {
-                    AllocationId = _lobbyManager.Player.AllocationId,
-                    ConnectionInfo = _lobbyManager.Player.ConnectionInfo,
-                    Data = _lobbyManager.Player.Data
-                };
-               
-                await Lobbies.Instance.UpdatePlayerAsync(_lobbyManager.JoinedLobby.Id, _lobbyManager.PlayerId, updatePlayerOptions);
-            }
-            catch (LobbyServiceException e)
-            {
-                Debug.LogError(e.Message);
-            }
-
-            readyButton.interactable = true;
+            Debug.LogError("Lobby setup failed");
+            _currentLobby = null;
+            _lobbyManager.OnMenuStateChangeRequested?.Invoke(MenuStates.MainMenu);
         }
 
-        private async void LeaveClickHandler()
+        private void ChangeReadyStatus(bool isReady)
         {
-            try
-            {
-                await LobbyService.Instance.RemovePlayerAsync(_currentLobby.Id, _lobbyManager.PlayerId);
-                
-                _lobbyManager.JoinedLobby = null;
-                menuTransitionManager.ChangeState(MenuStates.MainMenu);
-            
-                UnsubscribeEvents();
-            }
-            catch (LobbyServiceException e)
-            {
-                Debug.LogError(e.Message);
-                menuTransitionManager.ShowNotification(e.Message);
-            }
+            _lobbyManager.SetPlayerReady(isReady);
+        }
+
+        private void LeaveClickHandler()
+        {
+            _lobbyManager.RemovePlayerFromLobby();
         }
         
         private void ReadyClickHandler()
         {
-            var currentReadyStatus = _lobbyManager.Player.Data[_lobbyManager.PlayerReadyKey].Value == "true";
+            var currentReadyStatus = bool.Parse(_lobbyManager.Player.Data[_lobbyManager.PlayerReadyKey].Value);
             ChangeReadyStatus(!currentReadyStatus);
         }
 
@@ -167,19 +133,9 @@ namespace _GameData.Scripts.UI.MenuUI
             UpdateLobbyPlayers();
         }
 
-        private void OnPlayerKickedHandler()
+        private void OnGameStartPermissionChangedHandler(bool isGameStartAllowed)
         {
-            UnsubscribeEvents();
-        }
-
-        private void OnGameStartPermissionChangedHandler()
-        {
-            startGameButton.interactable = _lobbyManager.IsGameStartAllowed;
-        }
-
-        private void OnDisable()
-        {
-            UnsubscribeEvents();
+            startGameButton.interactable = isGameStartAllowed;
         }
     }
 }
