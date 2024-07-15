@@ -222,13 +222,29 @@ namespace _GameData.Scripts.Core
             }
         }
 
-        public async void JoinLobby(Lobby lobbyToJoin)
+        public async void JoinLobbyById(Lobby lobbyToJoin)
         {
             JoinLobbyByIdOptions joinLobbyByIdOptions = new JoinLobbyByIdOptions() { Player = Player };
             
             try
             {
                 JoinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyToJoin.Id, joinLobbyByIdOptions);
+                OnMenuStateChangeRequested?.Invoke(MenuStates.Lobby);
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.LogError(e.Message);
+                OnNotificationPopupRequested?.Invoke(e.Message);
+            }
+        }
+
+        public async void JoinLobbyByCode(string lobbyCode)
+        {
+            JoinLobbyByCodeOptions joinLobbyByCodeOptions = new JoinLobbyByCodeOptions() { Player = Player };
+            
+            try
+            {
+                JoinedLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode, joinLobbyByCodeOptions);
                 OnMenuStateChangeRequested?.Invoke(MenuStates.Lobby);
             }
             catch (LobbyServiceException e)
@@ -269,7 +285,7 @@ namespace _GameData.Scripts.Core
             while (JoinedLobby != null)
             {
                 yield return _heartbeatTimer;
-                yield return LobbyService.Instance.SendHeartbeatPingAsync(JoinedLobby.Id);
+                if (JoinedLobby != null) yield return LobbyService.Instance.SendHeartbeatPingAsync(JoinedLobby.Id);
             }
 
             _heartbeatRoutine = null;

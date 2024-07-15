@@ -26,7 +26,7 @@ namespace _GameData.Scripts.UI.MenuUI
 
         private void LobbyJoinClickHandler()
         {
-            LobbyManager.Instance.JoinLobby(_currentLobby);
+            LobbyManager.Instance.JoinLobbyById(_currentLobby);
         }
     }
 }

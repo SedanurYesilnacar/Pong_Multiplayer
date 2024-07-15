@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using _GameData.Scripts.Core;
+using TMPro;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,7 +14,9 @@ namespace _GameData.Scripts.UI.MenuUI
         [SerializeField] private GameObject lobbyPrefab;
         [SerializeField] private Button backButton;
         [SerializeField] private Button refreshButton;
-        
+        [SerializeField] private Button joinByCodeButton;
+        [SerializeField] private TMP_InputField lobbyCodeInputText;
+
         private List<LobbyEntryController> _displayedLobbies = new List<LobbyEntryController>();
 
         private const float RefreshRateTime = 1.5f;
@@ -22,6 +25,7 @@ namespace _GameData.Scripts.UI.MenuUI
         private void Awake()
         {
             _refreshDelay = new WaitForSeconds(RefreshRateTime);
+            lobbyCodeInputText.characterLimit = 10;
         }
 
         private void OnEnable()
@@ -38,6 +42,7 @@ namespace _GameData.Scripts.UI.MenuUI
         {
             backButton.onClick.AddListener(BackClickHandler);
             refreshButton.onClick.AddListener(RefreshClickHandler);
+            joinByCodeButton.onClick.AddListener(JoinByCodeClickHandler);
             LobbyManager.Instance.OnLobbyListUpdated += OnLobbyListUpdatedHandler;
         }
 
@@ -45,6 +50,7 @@ namespace _GameData.Scripts.UI.MenuUI
         {
             backButton.onClick.RemoveAllListeners();
             refreshButton.onClick.RemoveAllListeners();
+            joinByCodeButton.onClick.RemoveAllListeners();
             if (LobbyManager.Instance == null) return;
             LobbyManager.Instance.OnLobbyListUpdated -= OnLobbyListUpdatedHandler;
         }
@@ -95,6 +101,12 @@ namespace _GameData.Scripts.UI.MenuUI
         private void RefreshClickHandler()
         {
             LobbyManager.Instance.QueryLobbies();
+        }
+
+        private void JoinByCodeClickHandler()
+        {
+            if (string.IsNullOrWhiteSpace(lobbyCodeInputText.text)) return;
+            LobbyManager.Instance.JoinLobbyByCode(lobbyCodeInputText.text);
         }
 
         private void OnLobbyListUpdatedHandler(List<Lobby> lobbies)
