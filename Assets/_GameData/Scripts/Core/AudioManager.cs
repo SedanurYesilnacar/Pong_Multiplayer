@@ -43,7 +43,8 @@ namespace _GameData.Scripts.Core
 
         private void LoadVolumeData()
         {
-            CurrentVolume = SaveManager.GetValue(SaveKeys.MusicVolume, 1f);
+            var volumeData = SaveManager.GetValue(SaveKeys.MusicVolume, 1f);
+            UpdateVolume(volumeData);
             OnAudioManagerLoaded?.Invoke();
         }
 

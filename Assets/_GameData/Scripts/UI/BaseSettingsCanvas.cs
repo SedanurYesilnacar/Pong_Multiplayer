@@ -19,6 +19,11 @@ namespace _GameData.Scripts.UI
             UnsubscribeEvents();
         }
 
+        private void Start()
+        {
+            UpdateVolumeSlider();
+        }
+
         protected virtual void SubscribeEvents()
         {
             backButton.onClick.AddListener(BackClickHandler);
@@ -33,6 +38,11 @@ namespace _GameData.Scripts.UI
             AudioManager.Instance.OnAudioManagerLoaded -= OnAudioManagerLoadedHandler;
         }
 
+        private void UpdateVolumeSlider()
+        {
+            volumeSlider.value = AudioManager.Instance.CurrentVolume;
+        }
+
         protected abstract void BackClickHandler();
 
         private void OnVolumeSliderValueChangedHandler(float value)
@@ -42,7 +52,7 @@ namespace _GameData.Scripts.UI
 
         private void OnAudioManagerLoadedHandler()
         {
-            volumeSlider.value = AudioManager.Instance.CurrentVolume;
+            UpdateVolumeSlider();
         }
     }
 }
