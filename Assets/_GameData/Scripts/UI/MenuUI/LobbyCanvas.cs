@@ -86,7 +86,7 @@ namespace _GameData.Scripts.UI.MenuUI
                 if (i >= _currentLobby.Players.Count || _currentLobby.Players[i] == null) lobbyUserControllers[i].ResetUser();
                 else
                 {
-                    var isUserHost = _lobbyManager.IsPlayerHost(_currentLobby.Players[i].Id);
+                    var isUserHost = _lobbyManager.IsPlayerHost(_lobbyManager.JoinedLobby, _currentLobby.Players[i].Id);
                     lobbyUserControllers[i].ChangeUserType(_lobbyManager.IsOwnerHost, isUserHost);
                     lobbyUserControllers[i].UpdateUser(_currentLobby.Players[i]);
                 }

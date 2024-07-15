@@ -14,14 +14,32 @@ namespace _GameData.Scripts.UI.MenuUI
 
         private Lobby _currentLobby;
 
+        private void OnEnable()
+        {
+            SubscribeEvents();
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeEvents();
+        }
+
+        private void SubscribeEvents()
+        {
+            lobbyJoinButton.onClick.AddListener(LobbyJoinClickHandler);
+        }
+
+        private void UnsubscribeEvents()
+        {
+            lobbyJoinButton.onClick.RemoveAllListeners();
+        }
+
         public void Init(Lobby lobbyInfo)
         {
             _currentLobby = lobbyInfo;
             
             lobbyNameText.text = _currentLobby.Name;
-            lobbyOwnerNameText.text = _currentLobby.Players[0].Id;
-            
-            lobbyJoinButton.onClick.AddListener(LobbyJoinClickHandler);
+            lobbyOwnerNameText.text = LobbyManager.Instance.GetHostName(_currentLobby);
         }
 
         private void LobbyJoinClickHandler()

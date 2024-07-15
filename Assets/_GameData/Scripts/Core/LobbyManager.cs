@@ -41,9 +41,12 @@ namespace _GameData.Scripts.Core
 
         public Player Player { get; private set; }
         private QueryLobbiesOptions QueryLobbiesOptions { get; set; }
+        private JoinLobbyByIdOptions JoinLobbyByIdOptions { get; set; }
+        private JoinLobbyByCodeOptions JoinLobbyByCodeOptions { get; set; }
+        private QuickJoinLobbyOptions QuickJoinLobbyOptions { get; set; }
+        private CreateLobbyOptions CreateLobbyOptions { get; set; }
         public string PlayerNameKey { get; private set; } = "PlayerName";
         public string PlayerReadyKey { get; private set; } = "IsPlayerReady";
-        public string LobbyHostName { get; private set; } = "HostName";
 
         private bool IsGameStartAllowed
         {
@@ -55,7 +58,7 @@ namespace _GameData.Scripts.Core
         }
 
         private string PlayerId { get; set; }
-        public bool IsOwnerHost => IsPlayerHost(PlayerId);
+        public bool IsOwnerHost => IsPlayerHost(JoinedLobby, PlayerId);
         
         private const string PlayerBaseName = "Player";
         private const string LobbyStartKey = "IsGameStarted";
@@ -120,7 +123,7 @@ namespace _GameData.Scripts.Core
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
             
             CreatePlayer();
-            CreateQueryLobbiesOptions();
+            CreateLobbyJoinOptions();
             
             (LobbyService.Instance as ILobbyServiceSDKConfiguration).EnableLocalPlayerLobbyEvents(true);
         }
@@ -138,13 +141,13 @@ namespace _GameData.Scripts.Core
             {
                 Data = new Dictionary<string, PlayerDataObject>()
                 {
-                    { PlayerNameKey, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, playerName) },
+                    { PlayerNameKey, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Public, playerName) },
                     { PlayerReadyKey, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, "false") }
                 }
             };
         }
 
-        private void CreateQueryLobbiesOptions()
+        private void CreateLobbyJoinOptions()
         {
             QueryLobbiesOptions = new QueryLobbiesOptions()
             {
@@ -152,11 +155,31 @@ namespace _GameData.Scripts.Core
                 Filters = new List<QueryFilter>() { new QueryFilter(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT) },
                 Order = new List<QueryOrder>() { new QueryOrder(false, QueryOrder.FieldOptions.Created) }
             };
+
+            JoinLobbyByIdOptions = new JoinLobbyByIdOptions() { Player = Player };
+            JoinLobbyByCodeOptions = new JoinLobbyByCodeOptions() { Player = Player };
+            QuickJoinLobbyOptions = new QuickJoinLobbyOptions() { Player = Player };
+            CreateLobbyOptions = new CreateLobbyOptions()
+            {
+                IsPrivate = false,
+                Player = Player
+            };
         }
 
-        public bool IsPlayerHost(string playerId)
+        public bool IsPlayerHost(Lobby targetLobby, string playerId)
         {
-            return JoinedLobby.HostId == playerId;
+            return targetLobby.HostId == playerId;
+        }
+
+        public string GetHostName(Lobby lobby)
+        {
+            for (int i = 0; i < lobby.Players.Count; i++)
+            {
+                var currentPlayer = lobby.Players[i];
+                if (IsPlayerHost(lobby, currentPlayer.Id)) return currentPlayer.Data[PlayerNameKey].Value;
+            }
+
+            return String.Empty;
         }
 
         private async void SubscribeLobbyEvents()
@@ -208,11 +231,9 @@ namespace _GameData.Scripts.Core
 
         public async void QuickPlay()
         {
-            QuickJoinLobbyOptions quickJoinLobbyOptions = new QuickJoinLobbyOptions() { Player = Player };
-
             try
             {
-                JoinedLobby = await LobbyService.Instance.QuickJoinLobbyAsync(quickJoinLobbyOptions);
+                JoinedLobby = await LobbyService.Instance.QuickJoinLobbyAsync(QuickJoinLobbyOptions);
                 OnMenuStateChangeRequested?.Invoke(MenuStates.Lobby);
             }
             catch (LobbyServiceException e)
@@ -224,11 +245,9 @@ namespace _GameData.Scripts.Core
 
         public async void JoinLobbyById(Lobby lobbyToJoin)
         {
-            JoinLobbyByIdOptions joinLobbyByIdOptions = new JoinLobbyByIdOptions() { Player = Player };
-            
             try
             {
-                JoinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyToJoin.Id, joinLobbyByIdOptions);
+                JoinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyToJoin.Id, JoinLobbyByIdOptions);
                 OnMenuStateChangeRequested?.Invoke(MenuStates.Lobby);
             }
             catch (LobbyServiceException e)
@@ -240,11 +259,9 @@ namespace _GameData.Scripts.Core
 
         public async void JoinLobbyByCode(string lobbyCode)
         {
-            JoinLobbyByCodeOptions joinLobbyByCodeOptions = new JoinLobbyByCodeOptions() { Player = Player };
-            
             try
             {
-                JoinedLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode, joinLobbyByCodeOptions);
+                JoinedLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode, JoinLobbyByCodeOptions);
                 OnMenuStateChangeRequested?.Invoke(MenuStates.Lobby);
             }
             catch (LobbyServiceException e)
@@ -258,16 +275,12 @@ namespace _GameData.Scripts.Core
         {
             if (_isLobbyCreating) return;
             _isLobbyCreating = true;
-            
-            CreateLobbyOptions lobbyOptions = new CreateLobbyOptions
-            {
-                IsPrivate = lobbyCreateOptions.LobbyAccessibilityType == LobbyAccessibilityType.Private,
-                Player = Player
-            };
-            
+
+            CreateLobbyOptions.IsPrivate = lobbyCreateOptions.LobbyAccessibilityType == LobbyAccessibilityType.Private;
+
             try
             {
-                JoinedLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyCreateOptions.LobbyName, 2, lobbyOptions);
+                JoinedLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyCreateOptions.LobbyName, 2, CreateLobbyOptions);
                 if (_heartbeatRoutine == null) _heartbeatRoutine = StartCoroutine(HeartbeatRoutine());
                 OnMenuStateChangeRequested?.Invoke(MenuStates.Lobby);
             }
