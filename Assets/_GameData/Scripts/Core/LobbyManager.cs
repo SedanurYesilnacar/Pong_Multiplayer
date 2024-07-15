@@ -18,13 +18,11 @@ namespace _GameData.Scripts.Core
     public class LobbyManager : MonoBehaviour
     {
         public static LobbyManager Instance { get; private set; }
-
-        private Lobby _joinedLobby;
-
+        
         public Lobby JoinedLobby
         {
             get => _joinedLobby;
-            set
+            private set
             {
                 _joinedLobby = value;
                 if (_joinedLobby == null)
@@ -40,13 +38,14 @@ namespace _GameData.Scripts.Core
         }
 
         public Player Player { get; private set; }
+        public string PlayerNameKey { get; private set; } = "PlayerName";
+        public string PlayerReadyKey { get; private set; } = "IsPlayerReady";
+        public bool IsOwnerHost => IsPlayerHost(JoinedLobby, PlayerId);
         private QueryLobbiesOptions QueryLobbiesOptions { get; set; }
         private JoinLobbyByIdOptions JoinLobbyByIdOptions { get; set; }
         private JoinLobbyByCodeOptions JoinLobbyByCodeOptions { get; set; }
         private QuickJoinLobbyOptions QuickJoinLobbyOptions { get; set; }
         private CreateLobbyOptions CreateLobbyOptions { get; set; }
-        public string PlayerNameKey { get; private set; } = "PlayerName";
-        public string PlayerReadyKey { get; private set; } = "IsPlayerReady";
 
         private bool IsGameStartAllowed
         {
@@ -58,7 +57,6 @@ namespace _GameData.Scripts.Core
         }
 
         private string PlayerId { get; set; }
-        public bool IsOwnerHost => IsPlayerHost(JoinedLobby, PlayerId);
         
         private const string PlayerBaseName = "Player";
         private const string LobbyStartKey = "IsGameStarted";
@@ -67,6 +65,7 @@ namespace _GameData.Scripts.Core
         private WaitForSeconds _heartbeatTimer;
         private Coroutine _heartbeatRoutine;
 
+        private Lobby _joinedLobby;
         private int _readyPlayerCount;
         private bool _isGameStartAllowed;
         private bool _isLobbyCreating;
@@ -159,11 +158,7 @@ namespace _GameData.Scripts.Core
             JoinLobbyByIdOptions = new JoinLobbyByIdOptions() { Player = Player };
             JoinLobbyByCodeOptions = new JoinLobbyByCodeOptions() { Player = Player };
             QuickJoinLobbyOptions = new QuickJoinLobbyOptions() { Player = Player };
-            CreateLobbyOptions = new CreateLobbyOptions()
-            {
-                IsPrivate = false,
-                Player = Player
-            };
+            CreateLobbyOptions = new CreateLobbyOptions() { IsPrivate = false, Player = Player };
         }
 
         public bool IsPlayerHost(Lobby targetLobby, string playerId)
