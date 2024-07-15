@@ -83,6 +83,8 @@ namespace _GameData.Scripts
 
         private void OnCollisionEnter2D(Collision2D col)
         {
+            AudioManager.Instance.PlaySfx(AudioManager.Instance.AudioLibraryData.ballHitAudio);
+            
             if (!IsHost) return;
             
             if (col.gameObject.TryGetComponent(out EdgeController edge))
