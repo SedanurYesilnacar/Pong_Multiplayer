@@ -65,8 +65,7 @@ namespace _GameData.Scripts.UI.MenuUI
             else
             {
                 lobbyNameText.text = _currentLobby.Name;
-                if (!_currentLobby.IsPrivate) lobbyCodeText.gameObject.SetActive(false);
-                else lobbyCodeText.text = "Lobby Code: " + _currentLobby.LobbyCode;
+                SetLobbyCode(_currentLobby.LobbyCode, _currentLobby.IsPrivate);
                 startGameButton.interactable = false;
             
                 UpdateLobby();
@@ -91,6 +90,12 @@ namespace _GameData.Scripts.UI.MenuUI
                     lobbyUserControllers[i].UpdateUser(_currentLobby.Players[i]);
                 }
             }
+        }
+
+        private void SetLobbyCode(string lobbyCode, bool isVisible)
+        {
+            lobbyCodeText.text = lobbyCode;
+            lobbyCodeText.gameObject.SetActive(isVisible);
         }
 
         private void HandleLobbySetupFail()
