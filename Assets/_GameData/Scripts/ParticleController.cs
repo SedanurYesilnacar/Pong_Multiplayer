@@ -9,7 +9,7 @@ namespace _GameData.Scripts
         public void Play(Vector3 targetPosition)
         {
             particle.transform.position = targetPosition;
-            particle.Play();
+            particle.Play(true);
         }
     }
 }
