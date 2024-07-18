@@ -12,7 +12,7 @@ namespace _GameData.Scripts.Core
         private CountdownCanvas _countdownCanvas;
         private ScoreCanvas _scoreCanvas;
 
-        public Action<bool> OnGameFailed;
+        public Action<bool> OnGameFailed; // isHostFailed
 
         private void GetReferences()
         {
@@ -51,7 +51,7 @@ namespace _GameData.Scripts.Core
 
         private void UnsubscribeEvents()
         {
-            NetworkManager.OnClientConnectedCallback -= OnClientConnectedCallbackHandler;
+            if (NetworkManager) NetworkManager.OnClientConnectedCallback -= OnClientConnectedCallbackHandler;
             if (_countdownCanvas) _countdownCanvas.OnCountdownCompleted -= OnCountdownCompletedHandler;
             OnGameFailed -= OnGameFailedHandler;
         }

@@ -9,7 +9,6 @@ using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
-using Unity.Services.Relay;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -335,7 +334,7 @@ namespace _GameData.Scripts.Core
             }
         }
 
-        private async void CreateRelay()
+        /*private async void CreateRelay()
         {
             try
             {
@@ -345,7 +344,7 @@ namespace _GameData.Scripts.Core
             {
                 Debug.LogError(e);
             }
-        }
+        }*/
 
         private void UpdateGameStartPermission()
         {

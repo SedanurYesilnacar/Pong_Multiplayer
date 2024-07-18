@@ -11,6 +11,7 @@ namespace _GameData.Scripts
     {
         [SerializeField] private Rigidbody2D rb;
         [SerializeField] private TrailRenderer trail;
+        [SerializeField] private ParticleController hitParticle;
         [SerializeField] private float movementSpeed = 8f;
 
         private const float MinForce = -1f;
@@ -66,6 +67,19 @@ namespace _GameData.Scripts
             trail.enabled = true;
         }
 
+        [ClientRpc]
+        private void HandleBallHitClientRpc()
+        {
+            AudioManager.Instance.PlaySfx(AudioManager.Instance.AudioLibraryData.ballHitAudio);
+            hitParticle.Play(transform.position);
+        }
+
+        private void HandleFail(bool isHostFailed)
+        {
+            _gameManager.OnGameFailed.Invoke(isHostFailed);
+            StopBall();
+        }
+
         private void FixedUpdate()
         {
             if (!_isBallInitialized) return;
@@ -83,14 +97,14 @@ namespace _GameData.Scripts
 
         private void OnCollisionEnter2D(Collision2D col)
         {
-            AudioManager.Instance.PlaySfx(AudioManager.Instance.AudioLibraryData.ballHitAudio);
+            HandleBallHitClientRpc();
             
             if (!IsHost) return;
             
             if (col.gameObject.TryGetComponent(out EdgeController edge))
             {
-                _gameManager.OnGameFailed.Invoke(edge.IsHostSide);
-                StopBall();
+                var isHostFailed = edge.IsHostSide;
+                HandleFail(isHostFailed);
             }
         }
     }
