@@ -11,6 +11,7 @@ namespace _GameData.Scripts.Core
         private PlayerControls _playerControls;
         public float VerticalValue { get; private set; }
         public Action OnSettingsToggled;
+        public Action OnDebugToggled;
 
         private void Awake()
         {
@@ -52,16 +53,15 @@ namespace _GameData.Scripts.Core
         {
             _playerControls = new PlayerControls();
             _playerControls.Movement.Enable();
+            _playerControls.Debug.Enable();
         }
 
         private void Update()
         {
             VerticalValue = _playerControls.Movement.Move.ReadValue<float>();
 
-            if (_playerControls.UI.ToggleSettings.WasPressedThisFrame())
-            {
-                OnSettingsToggled?.Invoke();
-            }
+            if (_playerControls.UI.ToggleSettings.WasPressedThisFrame()) OnSettingsToggled?.Invoke();
+            if (_playerControls.Debug.ToggleDebug.WasPressedThisFrame()) OnDebugToggled?.Invoke();
         }
 
         private void OnClientStartedHandler()
