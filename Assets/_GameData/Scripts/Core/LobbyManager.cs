@@ -5,10 +5,14 @@ using System.Linq;
 using _GameData.Scripts.UI;
 using _GameData.Scripts.UI.MenuUI;
 using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
+using Unity.Networking.Transport.Relay;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
+using Unity.Services.Relay;
+using Unity.Services.Relay.Models;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -26,19 +30,21 @@ namespace _GameData.Scripts.Core
                 _joinedLobby = value;
                 if (_joinedLobby == null)
                 {
-                    ResetLobbyReadyCount();
+                    ResetReadyStatus();
                     UnsubscribeLobbyEvents();
                 }
                 else
                 {
+                    UnsubscribeLobbyEvents();
                     SubscribeLobbyEvents();
                 }
             }
         }
 
+        private string PlayerId { get; set; }
         public Player Player { get; private set; }
-        public string PlayerNameKey { get; private set; } = "PlayerName";
-        public string PlayerReadyKey { get; private set; } = "IsPlayerReady";
+        public string PlayerNameKey => "PlayerName";
+        public string PlayerReadyKey => "IsPlayerReady";
         public bool IsOwnerHost => IsPlayerHost(JoinedLobby, PlayerId);
         private QueryLobbiesOptions QueryLobbiesOptions { get; set; }
         private JoinLobbyByIdOptions JoinLobbyByIdOptions { get; set; }
@@ -46,19 +52,9 @@ namespace _GameData.Scripts.Core
         private QuickJoinLobbyOptions QuickJoinLobbyOptions { get; set; }
         private CreateLobbyOptions CreateLobbyOptions { get; set; }
 
-        private bool IsGameStartAllowed
-        {
-            set
-            {
-                if (_isGameStartAllowed != value) OnGameStartPermissionChanged?.Invoke(value);
-                _isGameStartAllowed = value;
-            }
-        }
-
-        private string PlayerId { get; set; }
-        
         private const string PlayerBaseName = "Player";
-        private const string LobbyStartKey = "IsGameStarted";
+        private const string IsGameReadyToStartKey = "IsGameReadyToStart";
+        private const string RelayCodeKey = "RelayCode";
 
         private const float HeartbeatTriggerInterval = 25f; // LobbyActiveLifespan is 30s in dashboard
         private WaitForSeconds _heartbeatTimer;
@@ -66,9 +62,9 @@ namespace _GameData.Scripts.Core
 
         private Lobby _joinedLobby;
         private int _readyPlayerCount;
-        private bool _isGameStartAllowed;
         private bool _isLobbyCreating;
         private bool _isPlayerUpdating;
+        private bool _isGameStarting;
         
         private LobbyEventCallbacks _lobbyEventCallbacks;
         public event Action OnPlayerKicked;
@@ -76,8 +72,8 @@ namespace _GameData.Scripts.Core
         public event Action OnJoinedPlayersChanged;
         public event Action<bool> OnGameStartPermissionChanged; // IsGameStartAllowed
         public event Action<List<Lobby>> OnLobbyListUpdated; // CurrentLobbyList
-        public Action<MenuStates> OnMenuStateChangeRequested; // RequestedMenuState
         public event Action<string> OnNotificationPopupRequested; // NotificationMessage
+        public Action<MenuStates> OnMenuStateChangeRequested; // RequestedMenuState
 
         private void Awake()
         {
@@ -123,7 +119,7 @@ namespace _GameData.Scripts.Core
             CreatePlayer();
             CreateLobbyJoinOptions();
             
-            (LobbyService.Instance as ILobbyServiceSDKConfiguration).EnableLocalPlayerLobbyEvents(true);
+            (LobbyService.Instance as ILobbyServiceSDKConfiguration)?.EnableLocalPlayerLobbyEvents(true);
         }
 
         private void SignedInHandler()
@@ -157,7 +153,11 @@ namespace _GameData.Scripts.Core
             JoinLobbyByIdOptions = new JoinLobbyByIdOptions() { Player = Player };
             JoinLobbyByCodeOptions = new JoinLobbyByCodeOptions() { Player = Player };
             QuickJoinLobbyOptions = new QuickJoinLobbyOptions() { Player = Player };
-            CreateLobbyOptions = new CreateLobbyOptions() { IsPrivate = false, Player = Player };
+            CreateLobbyOptions = new CreateLobbyOptions() { IsPrivate = false, Player = Player, Data = new Dictionary<string, DataObject>()
+            {
+                { IsGameReadyToStartKey, new DataObject(DataObject.VisibilityOptions.Member, "false") },
+                { RelayCodeKey, new DataObject(DataObject.VisibilityOptions.Member, "0") }
+            }};
         }
 
         public bool IsPlayerHost(Lobby targetLobby, string playerId)
@@ -205,7 +205,45 @@ namespace _GameData.Scripts.Core
             _lobbyEventCallbacks.LobbyChanged -= OnLobbyChanged;
             _lobbyEventCallbacks.KickedFromLobby -= OnKickedFromLobby;
             _lobbyEventCallbacks.PlayerDataChanged -= OnPlayerDataChanged;
-            Debug.Log("unsubscribed");
+        }
+
+        private async void CreateRelay()
+        {
+            try
+            {
+                Allocation allocation = await RelayService.Instance.CreateAllocationAsync(1);
+                string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+
+                RelayServerData relayServerData = new RelayServerData(allocation, "dtls");
+                NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayServerData);
+
+                Debug.Log("StartingHost");
+                NetworkManager.Singleton.StartHost();
+                SetRelayCode(joinCode);
+                _isGameStarting = false;
+            }
+            catch (RelayServiceException e)
+            {
+                Debug.LogError(e);
+            }
+        }
+
+        private async void JoinRelay(string joinCode)
+        {
+            try
+            {
+                JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
+                RelayServerData relayServerData = new RelayServerData(joinAllocation, "dtls");
+                NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayServerData);
+                
+                Debug.Log("StartingClient");
+                NetworkManager.Singleton.StartClient();
+                _isGameStarting = false;
+            }
+            catch (RelayServiceException e)
+            {
+                Debug.LogError(e);
+            }
         }
 
         public async void QueryLobbies()
@@ -303,11 +341,11 @@ namespace _GameData.Scripts.Core
             if (_isPlayerUpdating) return;
             _isPlayerUpdating = true;
             
+            Player.Data[PlayerReadyKey] = new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, isReady.ToString().ToLower());
+            UpdatePlayerOptions updatePlayerOptions = new UpdatePlayerOptions() { Data = Player.Data };
+            
             try
             {
-                Player.Data[PlayerReadyKey] = new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, isReady.ToString().ToLower());
-                UpdatePlayerOptions updatePlayerOptions = new UpdatePlayerOptions() { Data = Player.Data };
-               
                 await Lobbies.Instance.UpdatePlayerAsync(JoinedLobby.Id, PlayerId, updatePlayerOptions);
             }
             catch (LobbyServiceException e)
@@ -334,42 +372,23 @@ namespace _GameData.Scripts.Core
             }
         }
 
-        /*private async void CreateRelay()
-        {
-            try
-            {
-                await RelayService.Instance.CreateAllocationAsync(1);
-            }
-            catch (RelayServiceException e)
-            {
-                Debug.LogError(e);
-            }
-        }*/
-
         private void UpdateGameStartPermission()
         {
-            if (!IsOwnerHost || JoinedLobby.Players.Count < JoinedLobby.MaxPlayers)
-            {
-                IsGameStartAllowed = false;
-                return;
-            }
-
-            if (JoinedLobby.Players.Any(player => !bool.Parse(player.Data[PlayerReadyKey].Value)))
-            {
-                IsGameStartAllowed = false;
-                return;
-            }
-
-            IsGameStartAllowed = true;
+            var isLobbyFull = JoinedLobby.Players.Count == JoinedLobby.MaxPlayers;
+            var isAllPlayersReady = JoinedLobby.Players.All(player => bool.Parse(player.Data[PlayerReadyKey].Value));
+            
+            if (!IsOwnerHost || !isLobbyFull || !isAllPlayersReady) OnGameStartPermissionChanged?.Invoke(false);
+            else OnGameStartPermissionChanged?.Invoke(true);
         }
 
-        public async void SetGameStartData(bool isStarted)
+        private async void UpdateLobbyData(LobbyData lobbyData)
         {
+            Debug.Log("Updating Lobby Data: " + lobbyData.DataKey + " " + lobbyData.DataValue);
             UpdateLobbyOptions updateLobbyOptions = new UpdateLobbyOptions()
             {
                 Data = new Dictionary<string, DataObject>()
                 {
-                    { LobbyStartKey, new DataObject(DataObject.VisibilityOptions.Member, isStarted.ToString().ToLower()) }
+                    { lobbyData.DataKey, new DataObject(lobbyData.Visibility, lobbyData.DataValue) }
                 }
             };
             
@@ -383,17 +402,48 @@ namespace _GameData.Scripts.Core
             }
         }
 
+        public void TriggerGameStart(bool isGameReadyToStart)
+        {
+            if (isGameReadyToStart && _isGameStarting) return;
+            _isGameStarting = true;
+            
+            LobbyData lobbyData = new LobbyData
+            {
+                DataKey = IsGameReadyToStartKey,
+                DataValue = isGameReadyToStart.ToString().ToLower(),
+                Visibility = DataObject.VisibilityOptions.Member
+            };
+
+            UpdateLobbyData(lobbyData);
+        }
+
+        private void SetRelayCode(string relayCode)
+        {
+            LobbyData lobbyData = new LobbyData
+            {
+                DataKey = RelayCodeKey,
+                DataValue = relayCode,
+                Visibility = DataObject.VisibilityOptions.Member
+            };
+
+            UpdateLobbyData(lobbyData);
+        }
+
         private void ResetLobbyForGameStart()
         {
             for (int i = 0; i < JoinedLobby.Players.Count; i++)
             {
                 JoinedLobby.Players[i].Data[PlayerReadyKey].Value = "false";
             }
-            
-            if (IsOwnerHost) SetGameStartData(false);
+
+            if (IsOwnerHost)
+            {
+                TriggerGameStart(false);
+                SetRelayCode("0");
+            }
         }
 
-        private void ResetLobbyReadyCount()
+        private void ResetReadyStatus()
         {
             Player.Data[PlayerReadyKey].Value = "false";
         }
@@ -407,30 +457,45 @@ namespace _GameData.Scripts.Core
 
             if (lobbyChanges.PlayerLeft.Changed || lobbyChanges.PlayerJoined.Changed)
             {
-                ResetLobbyReadyCount();
+                ResetReadyStatus();
                 OnJoinedPlayersChanged?.Invoke();
             }
 
-            TryStartGame();
+            if (lobbyChanges.Data.Changed)
+            {
+                var isGameReadyToStart = bool.Parse(JoinedLobby.Data[IsGameReadyToStartKey].Value);
+                if (isGameReadyToStart)
+                {
+                    if (IsOwnerHost) TryStartGame();
+                }
+
+                if (!IsOwnerHost && lobbyChanges.Data.Value.ContainsKey(RelayCodeKey))
+                {
+                    TryJoinGame(lobbyChanges.Data.Value[RelayCodeKey].Value.Value);
+                }
+            }
+        }
+
+        private void PrepareGameStart()
+        {
+            Debug.Log("--- GAME STARTING ---");
+            LoadingCanvas.Instance.Init();
+            ResetLobbyForGameStart();
         }
 
         private void TryStartGame()
         {
-            if (JoinedLobby.Data == null) return;
-            if (!JoinedLobby.Data.ContainsKey(LobbyStartKey)) return;
-            if (bool.Parse(JoinedLobby.Data[LobbyStartKey].Value) == false) return;
+            PrepareGameStart();
+            CreateRelay();
+        }
 
-            Debug.Log("--- GAME STARTING ---");
-            LoadingCanvas.Instance.Init();
-            ResetLobbyForGameStart();
-            if (IsOwnerHost)
-            {
-                NetworkManager.Singleton.StartHost();
-            }
-            else
-            {
-                NetworkManager.Singleton.StartClient();
-            }
+        private void TryJoinGame(string relayCode)
+        {
+            Debug.Log("Trying to join the game with relay code : " + relayCode);
+            if (relayCode == "0") return;
+            
+            PrepareGameStart();
+            JoinRelay(relayCode);
         }
 
         private void OnKickedFromLobby()
@@ -443,10 +508,15 @@ namespace _GameData.Scripts.Core
 
         private void OnPlayerDataChanged(Dictionary<int, Dictionary<string, ChangedOrRemovedLobbyValue<PlayerDataObject>>> obj)
         {
-            Debug.Log("OnPlayerDataChanged");
             OnLobbyPlayerDataChanged?.Invoke();
-            
             UpdateGameStartPermission();
         }
+    }
+
+    public struct LobbyData
+    {
+        public string DataKey;
+        public string DataValue;
+        public DataObject.VisibilityOptions Visibility;
     }
 }

@@ -33,14 +33,12 @@ namespace _GameData.Scripts.Core
             NetworkManager.Singleton.OnServerStarted += InitNetworkSession;
             NetworkManager.Singleton.OnClientStarted += InitNetworkSession;
             NetworkManager.Singleton.OnConnectionEvent += OnConnectionEventHandler;
-            
-            LoadingCanvas.Instance.Hide();
         }
 
         public override void OnNetworkDespawn()
         {
             NetworkManager.Singleton.OnServerStarted -= InitNetworkSession;
-            NetworkManager.Singleton.OnServerStarted -= InitNetworkSession;
+            NetworkManager.Singleton.OnClientStarted -= InitNetworkSession;
             NetworkManager.Singleton.OnConnectionEvent -= OnConnectionEventHandler;
             
             base.OnNetworkDespawn();
@@ -66,14 +64,10 @@ namespace _GameData.Scripts.Core
 
         private void InitNetworkSession()
         {
-            Debug.Log("IsSessionInitialized: " + _isSessionInitialized);
             if (_isSessionInitialized) return;
 
             LoadScene(GameplaySceneName, true, LoadSceneMode.Single);
             _isSessionInitialized = true;
-            Debug.Log(IsHost ? "HOST" : "CLIENT");
-            
-            LoadingCanvas.Instance.Hide();
         }
 
         private void LoadScene(string sceneName, bool useNetworkSceneManager, LoadSceneMode loadSceneMode)
@@ -91,9 +85,12 @@ namespace _GameData.Scripts.Core
 
         private void OnConnectionEventHandler(NetworkManager networkManager, ConnectionEventData connectionEventData)
         {
+            if (connectionEventData.EventType == ConnectionEvent.PeerConnected || !IsHost)
+            {
+                LoadingCanvas.Instance.Hide();
+            }
             if (connectionEventData.EventType == ConnectionEvent.ClientDisconnected)
             {
-                Debug.Log("client disconnected");
                 networkManager.Shutdown();
                 _isSessionInitialized = false;
                 InitStartUp();

@@ -123,7 +123,7 @@ namespace _GameData.Scripts.UI.MenuUI
 
         private void StartGameClickHandler()
         {
-            _lobbyManager.SetGameStartData(true);
+            _lobbyManager.TriggerGameStart(true);
         }
 
         private void OnLobbyPlayerDataChangedHandler()
