@@ -1,3 +1,4 @@
+using System;
 using _GameData.Scripts.Core;
 using Unity.Netcode;
 using UnityEngine;
@@ -9,11 +10,14 @@ namespace _GameData.Scripts.UI.InGameUI
     {
         [SerializeField] private Canvas settingsCanvas;
         [SerializeField] private Button leaveGameButton;
-
+        [SerializeField] private Toggle pingToggle;
+        public event Action<bool> OnPingToggled; // isActivated
+        
         protected override void SubscribeEvents()
         {
             base.SubscribeEvents();
             leaveGameButton.onClick.AddListener(LeaveGameClickHandler);
+            pingToggle.onValueChanged.AddListener(OnPingToggledHandler);
             InputManager.Instance.OnSettingsToggled += OnSettingsToggledHandler;
         }
 
@@ -21,6 +25,7 @@ namespace _GameData.Scripts.UI.InGameUI
         {
             base.UnsubscribeEvents();
             leaveGameButton.onClick.RemoveAllListeners();
+            pingToggle.onValueChanged.RemoveAllListeners();
             InputManager.Instance.OnSettingsToggled -= OnSettingsToggledHandler;
         }
 
@@ -37,6 +42,11 @@ namespace _GameData.Scripts.UI.InGameUI
         private void OnSettingsToggledHandler()
         {
             settingsCanvas.enabled = !settingsCanvas.enabled;
+        }
+
+        private void OnPingToggledHandler(bool isActivated)
+        {
+            OnPingToggled?.Invoke(isActivated);
         }
     }
 }
